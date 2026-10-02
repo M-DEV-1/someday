@@ -3,5 +3,9 @@
   "name": "someday",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [{ "name": "STORE", "class_name": "Store" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Store"] }],
   "observability": { "enabled": true }
 }
