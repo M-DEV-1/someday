@@ -65,7 +65,7 @@ You need:
 5. **Sign in.** Open that address, enter your email and click the link that arrives. The link arriving shows your mail settings work. **Send a test email** on the Settings page checks them again later.
 6. **Write your first letter.**
 
-Other mail providers: iCloud is `smtp.mail.me.com:587` and Fastmail is `smtp.fastmail.com`. A host with no port uses 465 with TLS; add `:587` for servers that use STARTTLS.
+Other mail providers: iCloud is `smtp.mail.me.com:587`, with an `@icloud.com` address as `SMTP_USER`, and Fastmail is `smtp.fastmail.com`. A host with no port uses 465 with TLS; add `:587` for servers that use STARTTLS. Outlook.com and Microsoft 365 do not work, because they no longer accept a password for SMTP.
 
 If something goes wrong, [Troubleshooting](docs/operations.md#troubleshooting) lists each error and its fix.
 
