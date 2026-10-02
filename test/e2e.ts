@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startFakeSmtp } from "./fake-smtp.mjs";
+import { startFakeSmtp, type Mail } from "./fake-smtp.ts";
 
 const PORT = 8799;
 const SMTP_PORT = 2525;
@@ -21,14 +21,36 @@ const dev = spawn(
 );
 
 let cookie = "";
-const get = (path) => fetch(BASE + path, { headers: { Cookie: cookie }, redirect: "manual" });
-const post = (path, fields) => fetch(BASE + path, { method: "POST", body: new URLSearchParams(fields), headers: { Cookie: cookie }, redirect: "manual" });
-const text = async (path) => (await get(path)).text();
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const inSeconds = (s) => String(Math.floor(Date.now() / 1000) + s);
+const get = (path: string) => fetch(BASE + path, { headers: { Cookie: cookie }, redirect: "manual" });
+const post = (path: string, fields: Record<string, string>) =>
+	fetch(BASE + path, { method: "POST", body: new URLSearchParams(fields), headers: { Cookie: cookie }, redirect: "manual" });
+const text = async (path: string) => (await get(path)).text();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const inSeconds = (s: number) => String(Math.floor(Date.now() / 1000) + s);
+
+/** The value of a response header; fails the test when it is missing. */
+function header(res: Response, name: string): string {
+	const value = res.headers.get(name);
+	assert.ok(value !== null, `no ${name} header`);
+	return value;
+}
+
+/** The first capture group of `re` in `s`; fails the test when there is no match. */
+function grab(s: string, re: RegExp): string {
+	const found = s.match(re)?.[1];
+	assert.ok(found !== undefined, `no match for ${re}`);
+	return found;
+}
+
+/** The message at this position in the fake inbox; fails the test when there is none. */
+function mail(i: number): Mail {
+	const m = smtp.inbox[i];
+	assert.ok(m, `no message ${i} in the inbox`);
+	return m;
+}
 
 /** Triggers the cron handler and waits until `done()` holds, since the handler finishes in the background. */
-async function runCron(done) {
+async function runCron(done: () => boolean | Promise<boolean>) {
 	await get("/__scheduled?cron=*/5+*+*+*+*");
 	for (let i = 0; i < 40 && !(await done()); i++) await sleep(250);
 	assert.ok(await done(), "cron run did not finish");
@@ -41,7 +63,7 @@ try {
 
 	// Signed out: only the sign-in page, and a stranger's address gets no mail.
 	assert.equal((await get("/wp-login.php")).status, 404);
-	const csp = (await get("/")).headers.get("content-security-policy");
+	const csp = header(await get("/"), "content-security-policy");
 	assert.match(csp, /script-src 'self'/);
 	assert.match(await (await fetch(`${BASE}/js/write.js`)).text(), /deliver_at/);
 	assert.doesNotMatch(csp, /unsafe-inline/);
@@ -55,8 +77,8 @@ try {
 	// The owner gets a one-time link; a second request within a minute looks the same but sends nothing.
 	assert.equal((await post("/signin", { email: "ME@example.com" })).status, 200);
 	assert.equal(smtp.inbox.length, 1);
-	assert.equal(smtp.inbox[0].subject, "Your Someday sign-in link");
-	const link = smtp.inbox[0].text.match(/\/auth\?t=([\w-]+)/)[1];
+	assert.equal(mail(0).subject, "Your Someday sign-in link");
+	const link = grab(mail(0).text, /\/auth\?t=([\w-]+)/);
 	assert.match(await (await post("/signin", { email: OWNER })).text(), /a sign-in link is on its way/);
 	assert.equal(smtp.inbox.length, 1);
 
@@ -64,7 +86,7 @@ try {
 	assert.match(await text(`/auth?t=${link}`), /Sign in to Someday/);
 	const signedIn = await post("/auth", { t: link });
 	assert.equal(signedIn.status, 303);
-	cookie = signedIn.headers.get("set-cookie").split(";")[0];
+	cookie = grab(header(signedIn, "set-cookie"), /^([^;]*)/);
 	assert.equal((await post("/auth", { t: link })).status, 401, "a link works once");
 	const crossSite = await fetch(BASE + "/signout", { method: "POST", headers: { Cookie: cookie, "Sec-Fetch-Site": "cross-site" }, redirect: "manual" });
 	assert.equal(crossSite.status, 403, "a form post from another site is refused");
@@ -76,16 +98,16 @@ try {
 	assert.match(await past.text(), /Keep this text[\s\S]*Pick a date in the future/);
 	const yearAway = await post("/letters", { subject: "In a year", body: "Hi", in: "12" });
 	assert.equal(yearAway.status, 303);
-	assert.match(await text(yearAway.headers.get("location")), /Sealed\. Arrives .*, in 1 year\./);
+	assert.match(await text(header(yearAway, "location")), /Sealed\. Arrives .*, in 1 year\./);
 
 	const soon = await post("/letters", { subject: "Héllo <future> ✉", body: "Dear me,\nstill here?", deliver_at: inSeconds(1), tz: "Asia/Kolkata" });
-	const soonId = soon.headers.get("location").split("sent=")[1];
+	const soonId = grab(header(soon, "location"), /sent=(\w+)/);
 	assert.equal((await get(`/letters/${soonId}`)).status, 303, "an upcoming letter cannot be opened");
 
 	// Delivery: the cron sends the due letter only, and it can then be read.
 	await sleep(1500);
 	await runCron(() => smtp.inbox.length === 2);
-	const delivered = smtp.inbox[1];
+	const delivered = mail(1);
 	assert.equal(delivered.to, `<${OWNER}>`);
 	assert.equal(delivered.subject, "Héllo <future> ✉");
 	assert.match(delivered.text, /^Dear me,\nstill here\?\n\n--\nYou wrote this on /);
@@ -95,7 +117,7 @@ try {
 	// A failed send is shown on the letter and retried later instead of being dropped.
 	smtp.rejectAuth = true;
 	const failing = await post("/letters", { subject: "Will fail", body: "x", deliver_at: inSeconds(1), tz: "UTC" });
-	const failingId = failing.headers.get("location").split("sent=")[1];
+	const failingId = grab(header(failing, "location"), /sent=(\w+)/);
 	await sleep(1500);
 	await runCron(async () => /Could not send, 1 try, retrying/.test(await text("/letters")));
 	assert.match(await text("/letters"), /535 5\.7\.8/);
@@ -122,26 +144,27 @@ try {
 	const inboxBefore = smtp.inbox.length;
 	const tested = await post("/settings/test", {});
 	assert.equal(tested.status, 303);
-	assert.match(await text(tested.headers.get("location")), /Test email sent to me@example\.com\./);
-	assert.equal(smtp.inbox[inboxBefore].subject, "Someday test email");
+	assert.match(await text(header(tested, "location")), /Test email sent to me@example\.com\./);
+	assert.equal(mail(inboxBefore).subject, "Someday test email");
 
 	// The export holds every letter with its body, sealed ones included.
 	const exported = await get("/export");
-	assert.match(exported.headers.get("content-disposition"), /attachment; filename="someday-letters-/);
-	const letters = await exported.json();
-	assert.deepEqual(letters.map((l) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
-	assert.equal(letters.find((l) => l.subject === "In a year").body, "Hi");
+	assert.match(header(exported, "content-disposition"), /attachment; filename="someday-letters-/);
+	const letters: unknown = await exported.json();
+	assert.ok(Array.isArray(letters));
+	assert.deepEqual(letters.map((l: { subject: string }) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
+	assert.equal(letters.find((l: { subject: string }) => l.subject === "In a year")?.body, "Hi");
 
 	// Deleting, and signing out everywhere.
 	assert.equal((await post("/letters/delete", { id: failingId })).status, 303);
 	assert.doesNotMatch(await text("/letters"), /Will fail/);
 	const out = await post("/signout-all", {});
-	assert.match(out.headers.get("set-cookie"), /Max-Age=0/);
+	assert.match(header(out, "set-cookie"), /Max-Age=0/);
 	assert.equal((await get("/letters")).status, 303, "the old session no longer works");
 
 	console.log("e2e: ok");
 } finally {
-	process.kill(-dev.pid);
+	if (dev.pid) process.kill(-dev.pid);
 	smtp.close();
 	rmSync(dir, { recursive: true, force: true });
 }
