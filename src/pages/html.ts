@@ -15,7 +15,7 @@ type Part = Html | string | number | boolean | null | undefined | readonly Part[
  */
 export function html(strings: TemplateStringsArray, ...parts: Part[]): Html {
 	let out = strings[0] ?? "";
-	parts.forEach((part, i) => (out += render(part) + (strings[i + 1] ?? "")));
+	for (const [i, part] of parts.entries()) out += render(part) + (strings[i + 1] ?? "");
 	return new Html(out);
 }
 

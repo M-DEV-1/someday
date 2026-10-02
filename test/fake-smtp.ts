@@ -21,7 +21,7 @@ export function startFakeSmtp(port: number): FakeSmtp {
 		say("220 fake ESMTP");
 		sock.on("data", (chunk) => {
 			buf += chunk.toString();
-			for (let i; (i = buf.indexOf("\r\n")) >= 0; ) {
+			for (let i = buf.indexOf("\r\n"); i >= 0; i = buf.indexOf("\r\n")) {
 				const line = buf.slice(0, i);
 				buf = buf.slice(i + 2);
 				if (data !== null) {

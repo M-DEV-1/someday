@@ -69,7 +69,7 @@ try {
 	assert.doesNotMatch(csp, /unsafe-inline/);
 	assert.match(await text("/"), /Send link/);
 	assert.equal((await get("/letters")).status, 303);
-	assert.equal((await fetch(BASE + "/letters", { headers: { Cookie: "someday=junk" }, redirect: "manual" })).status, 303);
+	assert.equal((await fetch(`${BASE}/letters`, { headers: { Cookie: "someday=junk" }, redirect: "manual" })).status, 303);
 	assert.equal((await post("/letters", { subject: "x", body: "x", in: "12" })).status, 403);
 	assert.match(await (await post("/signin", { email: "stranger@example.com" })).text(), /a sign-in link is on its way/);
 	assert.equal(smtp.inbox.length, 0, "a stranger's address gets no mail");
@@ -88,7 +88,7 @@ try {
 	assert.equal(signedIn.status, 303);
 	cookie = grab(header(signedIn, "set-cookie"), /^([^;]*)/);
 	assert.equal((await post("/auth", { t: link })).status, 401, "a link works once");
-	const crossSite = await fetch(BASE + "/signout", { method: "POST", headers: { Cookie: cookie, "Sec-Fetch-Site": "cross-site" }, redirect: "manual" });
+	const crossSite = await fetch(`${BASE}/signout`, { method: "POST", headers: { Cookie: cookie, "Sec-Fetch-Site": "cross-site" }, redirect: "manual" });
 	assert.equal(crossSite.status, 403, "a form post from another site is refused");
 
 	// Writing: validation keeps the draft, the no-JavaScript "Deliver in" path works, and upcoming letters stay sealed.

@@ -140,7 +140,10 @@ function encodedWords(s: string): string {
 	let bytes = 0;
 	for (const ch of s) {
 		const n = new TextEncoder().encode(ch).length;
-		if (bytes + n > 45) chunks.push(""), (bytes = 0);
+		if (bytes + n > 45) {
+			chunks.push("");
+			bytes = 0;
+		}
 		chunks[chunks.length - 1] += ch;
 		bytes += n;
 	}
