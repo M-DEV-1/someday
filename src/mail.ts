@@ -1,3 +1,9 @@
+export interface Mail {
+	to: string;
+	subject: string;
+	text: string;
+}
+
 const REPLY_TIMEOUT_MS = 20_000;
 
 /** Wraps a socket with line-based SMTP reads and writes. A reply that takes longer than 20 seconds throws. */
@@ -43,4 +49,30 @@ function wrap(socket: Socket) {
 			writer.releaseLock();
 		},
 	};
+}
+
+/** Builds a plain-text UTF-8 message. The body is base64, so no line can start with the "." that ends DATA. */
+function message(from: string, mail: Mail): string {
+	// Encoded words are kept short and folded so long or non-ASCII subjects stay under the 998-character header line limit.
+	const subject = (mail.subject.match(/.{1,30}/gsu) ?? [""]).map((chunk) => `=?UTF-8?B?${b64(chunk)}?=`).join("\r\n ");
+	return [
+		`From: Someday <${from}>`,
+		`To: <${mail.to}>`,
+		`Subject: ${subject}`,
+		`Date: ${new Date().toUTCString()}`,
+		`Message-ID: <${crypto.randomUUID()}@${from.split("@")[1] ?? "someday"}>`,
+		"MIME-Version: 1.0",
+		"Content-Type: text/plain; charset=utf-8",
+		"Content-Transfer-Encoding: base64",
+		"",
+		b64(mail.text).replace(/.{76}/g, "$&\r\n"),
+	].join("\r\n");
+}
+
+/** Base64 of the UTF-8 bytes of `s`. */
+function b64(s: string): string {
+	const bytes = new TextEncoder().encode(s);
+	let bin = "";
+	for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+	return btoa(bin);
 }
