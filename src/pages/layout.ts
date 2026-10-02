@@ -11,7 +11,7 @@ export function esc(s: string): string {
 export function layout(view: View, content: string, { customCss = true } = {}): string {
 	const s = view.settings;
 	const links = view.signedIn
-		? `<a href="/">Write</a><a href="/letters">Letters</a><form method="post" action="/signout"><button class="link">Sign out</button></form>`
+		? `<a href="/">Write</a><a href="/letters">Letters</a><a href="/settings">Settings</a><form method="post" action="/signout"><button class="link">Sign out</button></form>`
 		: "";
 	return `<!doctype html>
 <html lang="en"${s.theme === "auto" ? "" : ` data-theme="${s.theme}"`}>

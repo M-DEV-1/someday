@@ -100,6 +100,22 @@ try {
 	assert.match(await text("/letters"), /535 5\.7\.8/);
 	assert.equal(smtp.inbox.length, 2);
 
+	// Settings change every page except Settings itself, and custom CSS cannot close its style element.
+	assert.match(await text("/settings"), /Appearance[\s\S]*Writing/);
+	assert.equal((await post("/settings", { accent: "red" })).status, 400);
+	const saved = await post("/settings", {
+		theme: "dark", font: "sans", size: "20", accent: "#1a5fb4", greeting: "Hello me,", prefix: "Note from", deliverIn: "12",
+		prompts: "One\nTwo", css: "body { margin: 0 }</style><script>alert(1)</script>",
+	});
+	assert.equal(saved.status, 303);
+	const themed = await text("/");
+	assert.match(themed, /data-theme="dark"/);
+	assert.match(themed, /--font: var\(--font-sans\); --size: 20px; --accent: #1a5fb4;/);
+	assert.match(themed, /Hello me,[\s\S]*<option value="12" selected>[\s\S]*<li>One<\/li><li>Two<\/li>/);
+	assert.match(themed, /body \{ margin: 0 \}\\3c \/style>\\3c script>/);
+	assert.doesNotMatch(themed, /<script>alert/);
+	assert.doesNotMatch(await text("/settings?saved"), /\\3c \/style>/, "Settings leaves out custom CSS");
+
 	// Deleting and signing out.
 	assert.equal((await post("/letters/delete", { id: failingId })).status, 303);
 	assert.doesNotMatch(await text("/letters"), /Will fail/);
