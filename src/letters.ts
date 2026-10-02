@@ -1,6 +1,9 @@
 import type { Cipher } from "./cipher";
 import { DAY, now } from "./time";
 
+export const MAX_SUBJECT = 200;
+export const MAX_BODY = 100_000;
+
 export interface LetterInput {
 	subject: string;
 	body: string;

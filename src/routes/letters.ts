@@ -1,5 +1,5 @@
 import { field, html, type OwnerCtx, redirect } from "../http";
-import type { LetterInput } from "../letters";
+import { type LetterInput, MAX_BODY, MAX_SUBJECT } from "../letters";
 import { letterPage, lettersPage } from "../pages/letters";
 import { type Draft, newDraft, writePage } from "../pages/write";
 import { DELIVERY_CHOICES } from "../settings";
@@ -48,8 +48,8 @@ function readDraft(form: FormData): { draft: Draft; input?: LetterInput; error?:
 	const deliverAt = Number(field(form, "deliver_at")) || utcNineAm(draft);
 	const t = now();
 
-	if (!draft.subject || draft.subject.length > 200) return { draft, error: "Give the letter a subject of up to 200 characters." };
-	if (!draft.body.trim() || draft.body.length > 100_000) return { draft, error: "Write a letter of up to 100,000 characters." };
+	if (!draft.subject || draft.subject.length > MAX_SUBJECT) return { draft, error: "Give the letter a subject of up to 200 characters." };
+	if (!draft.body.trim() || draft.body.length > MAX_BODY) return { draft, error: "Write a letter of up to 100,000 characters." };
 	if (!Number.isInteger(deliverAt) || deliverAt <= t) return { draft, error: "Pick a date in the future." };
 	if (deliverAt > t + MAX_YEARS_AHEAD * 365 * DAY) return { draft, error: `Pick a date within ${MAX_YEARS_AHEAD} years.` };
 	return { draft, input: { subject: draft.subject, body: draft.body, deliverAt, tz: safeTimeZone(field(form, "tz") || "UTC") } };
