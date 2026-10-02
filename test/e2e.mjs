@@ -62,6 +62,8 @@ try {
 	assert.equal(signedIn.status, 303);
 	cookie = signedIn.headers.get("set-cookie").split(";")[0];
 	assert.equal((await post("/auth", { t: link })).status, 401, "a link works once");
+	const crossSite = await fetch(BASE + "/signout", { method: "POST", headers: { Cookie: cookie, "Sec-Fetch-Site": "cross-site" }, redirect: "manual" });
+	assert.equal(crossSite.status, 403, "a form post from another site is refused");
 
 	// Writing: validation keeps the draft, the no-JavaScript "Deliver in" path works, and upcoming letters stay sealed.
 	assert.match(await text("/"), /A letter from[\s\S]*Send to the future/);

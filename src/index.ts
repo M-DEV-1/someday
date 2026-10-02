@@ -29,6 +29,10 @@ export default {
 			const match = req.method === method && url.pathname.match(path);
 			if (!match) continue;
 
+			// SameSite=Lax already keeps the cookie off cross-site posts; browsers that send Sec-Fetch-Site get them refused outright.
+			const site = req.headers.get("Sec-Fetch-Site");
+			if (method === "POST" && site && site !== "same-origin" && site !== "none") return new Response("Cross-site form posts are refused", { status: 403 });
+
 			const store = env.STORE.getByName("main");
 			const cookie = sessionCookie(req);
 			const session = cookie && (await store.isSignedIn(cookie)) ? cookie : null;
