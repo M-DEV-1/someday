@@ -38,6 +38,15 @@ export class Sessions {
 		this.sql.exec("INSERT INTO tokens VALUES (?, 'session', ?, ?)", hash, t, t + SESSION_TTL);
 		return token;
 	}
+
+	async isValid(session: string): Promise<boolean> {
+		const hash = await sha256(session);
+		return this.sql.exec("SELECT 1 FROM tokens WHERE hash = ? AND kind = 'session' AND expires_at > ?", hash, now()).toArray().length > 0;
+	}
+
+	async end(session: string): Promise<void> {
+		this.sql.exec("DELETE FROM tokens WHERE hash = ? AND kind = 'session'", await sha256(session));
+	}
 }
 
 /** Returns a random 32-byte base64url token and its hash. */
