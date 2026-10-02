@@ -116,6 +116,14 @@ try {
 	assert.doesNotMatch(themed, /<script>alert/);
 	assert.doesNotMatch(await text("/settings?saved"), /\\3c \/style>/, "Settings leaves out custom CSS");
 
+	// The test email goes through the same SMTP settings.
+	smtp.rejectAuth = false;
+	const inboxBefore = smtp.inbox.length;
+	const tested = await post("/settings/test", {});
+	assert.equal(tested.status, 303);
+	assert.match(await text(tested.headers.get("location")), /Test email sent to me@example\.com\./);
+	assert.equal(smtp.inbox[inboxBefore].subject, "Someday test email");
+
 	// Deleting and signing out.
 	assert.equal((await post("/letters/delete", { id: failingId })).status, 303);
 	assert.doesNotMatch(await text("/letters"), /Will fail/);

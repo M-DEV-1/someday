@@ -4,7 +4,7 @@ import { signInPage } from "./pages/signin";
 import { DEFAULTS } from "./settings";
 import { confirmLink, redeemLink, signIn, signOut } from "./routes/auth";
 import { createLetter, deleteLetter, listLetters, readLetter, writeForm } from "./routes/letters";
-import { saveSettings, settingsForm } from "./routes/settings";
+import { saveSettings, sendTest, settingsForm } from "./routes/settings";
 import { Store } from "./store";
 
 export { Store };
@@ -24,6 +24,7 @@ const ROUTES: [string, RegExp, Handler, boolean][] = [
 	["POST", /^\/letters\/delete$/, deleteLetter, true],
 	["GET", /^\/settings$/, settingsForm, true],
 	["POST", /^\/settings$/, saveSettings, true],
+	["POST", /^\/settings\/test$/, sendTest, true],
 ];
 
 export default {

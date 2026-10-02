@@ -4,8 +4,8 @@ import { esc, layout } from "./layout";
 
 const NAMES: Record<string, string> = { auto: "System", light: "Light", dark: "Dark", serif: "Serif", sans: "Sans", mono: "Mono" };
 
-/** The settings page. `settings` is what the form shows, which after a failed save is what was submitted. The owner's custom CSS is left out of this page. */
-export function settingsPage(view: View, settings: Settings, { notice = "", error = "" } = {}): string {
+/** The settings page. `settings` is what the form shows, which after a failed save is what was submitted; `to` is the owner's address. The owner's custom CSS is left out of this page. */
+export function settingsPage(view: View, settings: Settings, to: string, { notice = "", error = "" } = {}): string {
 	return layout(
 		view,
 		`${notice ? `<p>${esc(notice)}</p>` : ""}${error ? `<p class="bad">${esc(error)}</p>` : ""}
@@ -29,7 +29,9 @@ export function settingsPage(view: View, settings: Settings, { notice = "", erro
 	${hint("Added after the built-in styles on every page except this one.")}
 </div>
 <p><button class="primary">Save</button></p>
-</form>`,
+</form>
+<h1>Account</h1>
+<form method="post" action="/settings/test"><button>Send a test email</button> <span class="small">to ${esc(to)}</span></form>`,
 		{ customCss: false },
 	);
 }
