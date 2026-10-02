@@ -10,6 +10,15 @@ export interface LetterInput {
 	tz: string;
 }
 
+/** A letter with its ID, dates and delivery state, as restored from a backup. */
+export interface StoredLetter extends LetterInput {
+	id: string;
+	/** Unix seconds. */
+	createdAt: number;
+	/** Unix seconds, or null when not delivered yet. */
+	sentAt: number | null;
+}
+
 export interface LetterSummary {
 	id: string;
 	subject: string;
@@ -67,12 +76,27 @@ export class Letters {
 		sql.exec("CREATE INDEX IF NOT EXISTS letters_due ON letters (sent_at, deliver_at)");
 	}
 
-	/** Encrypts and stores a letter. Returns its ID. */
+	/** Encrypts and stores a new letter. Returns its ID. */
 	async add(input: LetterInput): Promise<string> {
 		const id = ulid();
-		const sealed = await this.cipher.seal(JSON.stringify({ subject: input.subject, body: input.body }));
-		this.sql.exec("INSERT INTO letters (id, sealed, tz, created_at, deliver_at) VALUES (?, ?, ?, ?, ?)", id, sealed, input.tz, now(), input.deliverAt);
+		await this.insert({ ...input, id, createdAt: now(), sentAt: null });
 		return id;
+	}
+
+	/** Encrypts and stores a letter with a given ID and state. Returns false, and changes nothing, when a letter with that ID already exists. */
+	async insert(l: StoredLetter): Promise<boolean> {
+		const sealed = await this.cipher.seal(JSON.stringify({ subject: l.subject, body: l.body }));
+		return (
+			this.sql.exec(
+				"INSERT OR IGNORE INTO letters (id, sealed, tz, created_at, deliver_at, sent_at) VALUES (?, ?, ?, ?, ?, ?)",
+				l.id,
+				sealed,
+				l.tz,
+				l.createdAt,
+				l.deliverAt,
+				l.sentAt,
+			).rowsWritten > 0
+		);
 	}
 
 	/** Every letter with its body, soonest delivery first. */
