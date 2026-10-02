@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": { "includes": ["src/**", "test/**", "*.json", "*.jsonc", "!package-lock.json"] },
+  "formatter": { "indentStyle": "tab", "lineWidth": 160 },
+  "json": { "formatter": { "indentStyle": "space", "indentWidth": 2 } },
+  "linter": {
+    "rules": {
+      "preset": "recommended",
+      "complexity": { "useLiteralKeys": "off" }
+    }
+  }
+}
