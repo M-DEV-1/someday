@@ -25,4 +25,14 @@ input[type=email], input[type=date], input[type=text] { width: 100%; padding: 10
 button { padding: 10px 18px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--on-accent); cursor: pointer; }
 button.big { width: 100%; padding: 14px; font-size: 18px; }
 button.link { background: none; border: none; color: var(--muted); padding: 0; font-size: 14px; text-decoration: underline; }
+.write { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 760px) { .write { grid-template-columns: minmax(0, 1fr); } h1 { font-size: 32px; } }
+.paper input.subject { width: 100%; border: none; border-bottom: 1px solid var(--line); background: none; padding: 0 0 8px; font-size: 15px; color: var(--muted); }
+.paper textarea { width: 100%; min-height: 420px; border: none; background: none; resize: vertical; padding: 16px 0; font: 19px/1.7 Georgia, serif; outline: none; }
+aside > * + * { margin-top: 20px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips input { position: absolute; opacity: 0; }
+.chips label { margin: 0; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); cursor: pointer; }
+.chips input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.chips input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
 `;
