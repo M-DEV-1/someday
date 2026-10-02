@@ -32,6 +32,13 @@ jobs:
             echo "::warning::wrangler.jsonc differs from $REF and was kept as it is. Copy any new bindings or migrations from the diff above by hand."
           fi
           rsync -a --delete --exclude .git --exclude .github --exclude wrangler.jsonc "$src" ./
+      # A push made with the workflow token does not start ci.yml, so the new version is checked here before it is pushed and deployed.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Type-check and test the new version
+        run: npm ci && npm run typecheck && npm test
       - name: Commit and push
         env:
           REF: ${{ inputs.ref }}
