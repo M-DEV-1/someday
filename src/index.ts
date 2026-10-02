@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { html, redirect, sessionCookie, type Ctx } from "./http";
 import { signInPage } from "./pages/signin";
+import { signIn } from "./routes/auth";
 import { Store } from "./store";
 
 export { Store };
@@ -10,6 +11,7 @@ type Handler = (c: Ctx) => Promise<Response>;
 /** Method, path pattern, handler, and whether the route needs a signed-in session. */
 const ROUTES: [string, RegExp, Handler, boolean][] = [
 	["GET", /^\/$/, async () => html(signInPage()), false],
+	["POST", /^\/signin$/, signIn, false],
 ];
 
 export default {
