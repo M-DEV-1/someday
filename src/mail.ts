@@ -18,7 +18,7 @@ const REPLY_TIMEOUT_MS = 20_000;
 
 /** Opens an authenticated SMTP session. Plaintext is used only for localhost, which deployed Workers cannot reach, so it only applies to local tests. */
 export async function openSmtp(cfg: SmtpConfig) {
-	const [hostname, portText] = cfg.host.trim().split(":");
+	const [hostname = "", portText] = cfg.host.trim().split(":");
 	const port = Number(portText || 465);
 	const local = hostname === "localhost" || hostname === "127.0.0.1";
 	let socket = connect({ hostname, port }, { secureTransport: port === 465 ? "on" : local ? "off" : "starttls", allowHalfOpen: false });
@@ -77,7 +77,7 @@ function wrap(socket: Socket) {
 			const last = lines.slice(0, -1).findIndex((l) => l[3] === " " || l.length === 3);
 			if (last >= 0) {
 				buf = lines.slice(last + 1).join("\r\n");
-				return { code: Number(lines[last].slice(0, 3)), text: lines.slice(0, last + 1).join(" ") };
+				return { code: Number(lines[last]?.slice(0, 3)), text: lines.slice(0, last + 1).join(" ") };
 			}
 			let timer = 0;
 			const timeout = new Promise<never>((_, reject) => {

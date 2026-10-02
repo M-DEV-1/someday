@@ -24,7 +24,7 @@ export async function listLetters(c: Ctx): Promise<Response> {
 }
 
 export async function readLetter(c: Ctx): Promise<Response> {
-	const letter = await c.store.readLetter(c.params[0]);
+	const letter = await c.store.readLetter(c.params[0] ?? "");
 	return letter ? html(c, letterPage(c.view, letter)) : redirect("/letters");
 }
 

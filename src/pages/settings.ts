@@ -2,7 +2,7 @@ import type { View } from "../http";
 import { DELIVERY_CHOICES, FONTS, SIZES, THEMES, type Settings } from "../settings";
 import { esc, layout } from "./layout";
 
-const NAMES: Record<string, string> = { auto: "System", light: "Light", dark: "Dark", serif: "Serif", sans: "Sans", mono: "Mono" };
+const NAMES: Record<Settings["theme"] | Settings["font"], string> = { auto: "System", light: "Light", dark: "Dark", serif: "Serif", sans: "Sans", mono: "Mono" };
 
 /** The settings page. `settings` is what the form shows, which after a failed save is what was submitted; `to` is the owner's address. The owner's custom CSS is left out of this page. */
 export function settingsPage(view: View, settings: Settings, to: string, { notice = "", error = "" } = {}): string {

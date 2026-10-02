@@ -72,7 +72,7 @@ export class SettingsStore {
 }
 
 /** Reads the settings form. Unknown choices fall back to the default; text that is too long or a malformed colour returns an error naming the field. */
-export function readSettings(form: FormData): { settings: Settings; error?: string } {
+export function readSettings(form: FormData): { settings: Settings; error: string | undefined } {
 	const pick = <T>(value: T, allowed: readonly T[], fallback: T): T => (allowed.includes(value) ? value : fallback);
 	const settings: Settings = {
 		theme: pick(field(form, "theme") as Settings["theme"], THEMES, DEFAULTS.theme),
