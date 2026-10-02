@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { Backups, type Restore } from "./backup";
+import { Backups } from "./backup";
 import { Cipher } from "./cipher";
 import { deliverDue } from "./delivery";
 import type { Env } from "./env";
@@ -62,12 +62,14 @@ export class Store extends DurableObject<Env> {
 	}
 
 	/** The settings and every letter including sealed bodies, for the owner's backup. */
-	backup() {
-		return this.backups.build();
+	/** The backup file as a stream. It is built and turned into text here, where a request may use 30 seconds of CPU, instead of in the Worker, which has 10 ms on the free plan. */
+	async backupFile(): Promise<ReadableStream<Uint8Array>> {
+		return new Blob([await this.backups.file()]).stream();
 	}
 
-	restore(r: Restore) {
-		return this.backups.restore(r);
+	/** Restores an uploaded backup file, read from a stream so the Worker does not decode or parse it. */
+	async restoreFile(file: ReadableStream<Uint8Array>) {
+		return this.backups.restoreFile(await new Response(file).text());
 	}
 
 	readLetter(id: string) {

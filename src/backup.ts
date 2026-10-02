@@ -16,7 +16,7 @@ export interface Backup {
 }
 
 /** What a checked backup file restores. */
-export interface Restore {
+interface Restore {
 	settings: Settings;
 	letters: StoredLetter[];
 }
@@ -64,7 +64,19 @@ export class Backups {
 	}
 
 	/** Replaces the settings with the backup's and adds its letters. A letter whose ID is already here is skipped, so restoring the same file twice adds nothing. */
-	async restore(r: Restore): Promise<{ added: number; skipped: number }> {
+	/** Restores from the text of an uploaded backup file. Output: how many letters were added and skipped, or an error that says what is wrong, in which case nothing changed. */
+	async restoreFile(text: string): Promise<{ added: number; skipped: number } | { error: string }> {
+		let raw: unknown;
+		try {
+			raw = JSON.parse(text);
+		} catch {
+			return { error: "That file is not a Someday backup." };
+		}
+		const read = readBackup(raw);
+		return "error" in read ? read : this.restore(read.restore);
+	}
+
+	private async restore(r: Restore): Promise<{ added: number; skipped: number }> {
 		this.settings.save(r.settings);
 		let added = 0;
 		for (const letter of r.letters) if (await this.letters.insert(letter)) added++;
@@ -76,7 +88,12 @@ export class Backups {
 	}
 
 	/** Every readable letter and the settings. Letters that can no longer be decrypted are left out, since their text is gone. */
-	async build(): Promise<Backup> {
+	/** The text of a backup file. */
+	async file(): Promise<string> {
+		return JSON.stringify(await this.build(), null, "\t");
+	}
+
+	private async build(): Promise<Backup> {
 		const letters = (await this.letters.all()).filter((l) => !l.unreadable).map(toBackupLetter);
 		return { format: "someday-backup", version: 1, exportedAt: new Date().toISOString(), settings: this.settings.get(), letters };
 	}
@@ -99,7 +116,7 @@ function toBackupLetter(l: Letter): BackupLetter {
  * Checks an uploaded backup file. Input: the parsed JSON. Output: what to restore, or an error that says what is wrong.
  * Letters are held to the write form's limits, and a sealed letter whose date has passed is restored as due, so the next delivery pass sends it.
  */
-export function readBackup(raw: unknown): { restore: Restore } | { error: string } {
+function readBackup(raw: unknown): { restore: Restore } | { error: string } {
 	if (!isObject(raw) || raw["format"] !== "someday-backup") return { error: "That file is not a Someday backup." };
 	if (raw["version"] !== 1) return { error: "That backup was made by a newer Someday. Update this one, then restore." };
 	const list = raw["letters"];
