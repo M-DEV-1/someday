@@ -19,6 +19,8 @@ export interface LetterSummary {
 	sentAt: number | null;
 	attempts: number;
 	lastError: string | null;
+	/** True when the stored text could not be decrypted, for example after the key row was lost. */
+	unreadable: boolean;
 }
 
 export interface Letter extends LetterSummary {
@@ -89,7 +91,9 @@ export class Letters {
 		const rows = this.sql
 			.exec<Row>("SELECT * FROM letters WHERE sent_at IS NULL AND COALESCE(retry_at, deliver_at) <= ? ORDER BY deliver_at LIMIT ?", now(), limit)
 			.toArray();
-		return Promise.all(rows.map((r) => this.unseal(r)));
+		const letters = await Promise.all(rows.map((r) => this.unseal(r)));
+		for (const l of letters) if (l.unreadable) this.markFailed(l.id, "This letter could not be decrypted.");
+		return letters.filter((l) => !l.unreadable);
 	}
 
 	markSent(id: string): void {
@@ -108,9 +112,15 @@ export class Letters {
 		);
 	}
 
+	/** Decrypts a row. A row that cannot be decrypted comes back marked `unreadable` instead of throwing, so one damaged row cannot break the list or delivery. */
 	private async unseal(r: Row): Promise<Letter> {
-		const { subject, body } = JSON.parse(await this.cipher.open(r.sealed));
-		return { id: r.id, subject, body, tz: r.tz, createdAt: r.created_at, deliverAt: r.deliver_at, sentAt: r.sent_at, attempts: r.attempts, lastError: r.last_error };
+		const letter = { id: r.id, subject: "(could not be decrypted)", body: "", tz: r.tz, createdAt: r.created_at, deliverAt: r.deliver_at, sentAt: r.sent_at, attempts: r.attempts, lastError: r.last_error, unreadable: true };
+		try {
+			const { subject, body } = JSON.parse(await this.cipher.open(r.sealed));
+			return { ...letter, subject, body, unreadable: false };
+		} catch {
+			return letter;
+		}
 	}
 }
 
