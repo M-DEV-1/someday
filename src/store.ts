@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { Cipher } from "./cipher";
+import { deliverDue } from "./delivery";
 import type { Env } from "./env";
 import { Letters, type LetterInput } from "./letters";
 import { Sessions } from "./sessions";
@@ -8,6 +9,7 @@ import { Sessions } from "./sessions";
 export class Store extends DurableObject<Env> {
 	private sessions: Sessions;
 	private letters: Letters;
+	private delivering: Promise<number> | null = null;
 
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
@@ -46,5 +48,12 @@ export class Store extends DurableObject<Env> {
 
 	deleteLetter(id: string) {
 		this.letters.remove(id);
+	}
+
+	/** Runs one delivery pass. A call that arrives while a pass is running joins it, so overlapping cron runs never send a letter twice. */
+	deliverDue(): Promise<number> {
+		this.sessions.prune();
+		this.delivering ??= deliverDue(this.letters, this.env).finally(() => (this.delivering = null));
+		return this.delivering;
 	}
 }
