@@ -238,6 +238,9 @@ try {
 	assert.match(await text(`/letters/${soonId}`), /Dear me,\nstill here\?/);
 	assert.match(await text(header(await restore(backupJson), "location")), /Restored the settings and 0 letters\. 5 were already here\./);
 	assert.equal((await restore("{}")).status, 400);
+
+	// A restored letter whose date passed while it was away goes out on the next pass.
+	await runCron(() => smtp.inbox.some((m) => m.subject === "Will fail"));
 	const out = await post("/signout-all", {});
 	assert.match(header(out, "set-cookie"), /Max-Age=0/);
 	assert.equal((await get("/letters")).status, 303, "the old session no longer works");
