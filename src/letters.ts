@@ -71,6 +71,12 @@ export class Letters {
 		return letters.map(({ body: _, ...summary }) => summary);
 	}
 
+	/** Returns a letter only once it has been delivered; upcoming letters stay sealed. */
+	async delivered(id: string): Promise<Letter | null> {
+		const row = this.sql.exec<Row>("SELECT * FROM letters WHERE id = ? AND sent_at IS NOT NULL", id).toArray()[0];
+		return row ? this.unseal(row) : null;
+	}
+
 	private async unseal(r: Row): Promise<Letter> {
 		const { subject, body } = JSON.parse(await this.cipher.open(r.sealed));
 		return { id: r.id, subject, body, tz: r.tz, createdAt: r.created_at, deliverAt: r.deliver_at, sentAt: r.sent_at, attempts: r.attempts, lastError: r.last_error };
