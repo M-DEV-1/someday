@@ -21,7 +21,7 @@ export class Store extends DurableObject<Env> {
 		this.sessions = new Sessions(sql);
 		this.letters = new Letters(sql, new Cipher(sql));
 		this.settings = new SettingsStore(sql);
-		this.backups = new Backups(sql, this.letters, this.settings);
+		this.backups = new Backups(sql, this.letters, this.settings, (fn) => ctx.storage.transactionSync(fn));
 	}
 
 	createLink() {

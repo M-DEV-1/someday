@@ -22,6 +22,12 @@ export interface StoredLetter extends LetterInput {
 	sentAt: number | null;
 }
 
+/** A letter and its encrypted subject and body, ready to insert. */
+export interface SealedLetter {
+	letter: StoredLetter;
+	sealed: ArrayBuffer;
+}
+
 export interface LetterSummary {
 	id: string;
 	subject: string;
@@ -82,15 +88,20 @@ export class Letters {
 	/** Encrypts and stores a new letter. Returns its ID. */
 	async add(input: LetterInput): Promise<string> {
 		const id = ulid();
-		await this.insert({ ...input, id, createdAt: now(), sentAt: null });
+		this.insertSealed([await this.seal({ ...input, id, createdAt: now(), sentAt: null })]);
 		return id;
 	}
 
-	/** Encrypts and stores a letter with a given ID and state. Returns false, and changes nothing, when a letter with that ID already exists. */
-	async insert(l: StoredLetter): Promise<boolean> {
-		const sealed = await this.cipher.seal(JSON.stringify({ subject: l.subject, body: l.body }));
-		return (
-			this.sql.exec(
+	/** Encrypts a letter for `insertSealed`. */
+	async seal(letter: StoredLetter): Promise<SealedLetter> {
+		return { letter, sealed: await this.cipher.seal(JSON.stringify({ subject: letter.subject, body: letter.body })) };
+	}
+
+	/** Stores encrypted letters with their own IDs and state. Returns how many were added; a letter whose ID already exists is skipped and left as it is. It is synchronous so a caller can run it inside a transaction. */
+	insertSealed(list: SealedLetter[]): number {
+		let added = 0;
+		for (const { letter: l, sealed } of list) {
+			const written = this.sql.exec(
 				"INSERT OR IGNORE INTO letters (id, sealed, tz, created_at, deliver_at, sent_at) VALUES (?, ?, ?, ?, ?, ?)",
 				l.id,
 				sealed,
@@ -98,8 +109,10 @@ export class Letters {
 				l.createdAt,
 				l.deliverAt,
 				l.sentAt,
-			).rowsWritten > 0
-		);
+			).rowsWritten;
+			if (written > 0) added++;
+		}
+		return added;
 	}
 
 	/** Every letter with its body, soonest delivery first. */

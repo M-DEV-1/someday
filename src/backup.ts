@@ -40,6 +40,8 @@ export class Backups {
 		private sql: SqlStorage,
 		private letters: Letters,
 		private settings: SettingsStore,
+		/** Runs a function as one SQLite transaction: `ctx.storage.transactionSync`. */
+		private transaction: <T>(fn: () => T) => T,
 	) {
 		sql.exec("CREATE TABLE IF NOT EXISTS backup_state (id INTEGER PRIMARY KEY CHECK (id = 1), next_at INTEGER NOT NULL, last_error TEXT)");
 	}
@@ -65,7 +67,6 @@ export class Backups {
 		}
 	}
 
-	/** Replaces the settings with the backup's and adds its letters. A letter whose ID is already here is skipped, so restoring the same file twice adds nothing. */
 	/** Restores from the text of an uploaded backup file. Output: how many letters were added and skipped, or an error that says what is wrong, in which case nothing changed. */
 	async restoreFile(text: string): Promise<{ added: number; skipped: number } | { error: string }> {
 		let raw: unknown;
@@ -78,10 +79,14 @@ export class Backups {
 		return "error" in read ? read : this.restore(read.restore);
 	}
 
+	/** Replaces the settings with the backup's and adds its letters. A letter whose ID is already here is skipped, so restoring the same file twice adds nothing. */
 	private async restore(r: Restore): Promise<{ added: number; skipped: number }> {
-		this.settings.save(r.settings);
-		let added = 0;
-		for (const letter of r.letters) if (await this.letters.insert(letter)) added++;
+		const sealed = await Promise.all(r.letters.map((l) => this.letters.seal(l)));
+		// One transaction, so a failure leaves nothing half restored.
+		const added = this.transaction(() => {
+			this.settings.save(r.settings);
+			return this.letters.insertSealed(sealed);
+		});
 		return { added, skipped: r.letters.length - added };
 	}
 
