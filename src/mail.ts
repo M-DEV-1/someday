@@ -18,7 +18,8 @@ export interface Mail {
 	attachment?: { filename: string; type: string; content: string };
 }
 
-const REPLY_TIMEOUT_MS = 20_000;
+const TIMEOUT_MS = 20_000;
+const WRITE_CHUNK = 64 * 1024;
 
 /** Opens an authenticated SMTP session. Plaintext is used only for localhost, which deployed Workers cannot reach, so it only applies to local tests. */
 export async function openSmtp(cfg: SmtpConfig) {
@@ -66,13 +67,34 @@ export async function sendOne(cfg: SmtpConfig, mail: Mail): Promise<void> {
 	}
 }
 
-/** Wraps a socket with line-based SMTP reads and writes. A reply that takes longer than 20 seconds throws and marks the connection dead. */
+/** Wraps a socket with line-based SMTP reads and writes. A reply, or a 64 KB piece of a write, that takes longer than 20 seconds throws and marks the connection dead, so a stalled server cannot hold a delivery pass open. */
 function wrap(socket: Socket) {
 	const reader = socket.readable.getReader();
 	const writer = socket.writable.getWriter();
 	const decoder = new TextDecoder();
 	let buf = "";
 	let dead = false;
+
+	/** Waits for `work`, or throws after 20 seconds. Either failure marks the connection dead. */
+	async function within<T>(work: Promise<T>, what: string): Promise<T> {
+		let timer = 0;
+		const timeout = new Promise<never>((_, reject) => {
+			timer = setTimeout(() => reject(new Error(`SMTP server did not ${what} within 20 seconds`)), TIMEOUT_MS);
+		});
+		try {
+			return await Promise.race([work, timeout]);
+		} catch (e) {
+			dead = true;
+			throw e;
+		} finally {
+			clearTimeout(timer);
+		}
+	}
+
+	async function write(text: string): Promise<void> {
+		const bytes = new TextEncoder().encode(text);
+		for (let i = 0; i < bytes.length; i += WRITE_CHUNK) await within(writer.write(bytes.subarray(i, i + WRITE_CHUNK)), "accept data");
+	}
 
 	async function reply(): Promise<{ code: number; text: string }> {
 		for (;;) {
@@ -83,16 +105,7 @@ function wrap(socket: Socket) {
 				buf = lines.slice(last + 1).join("\r\n");
 				return { code: Number(lines[last]?.slice(0, 3)), text: lines.slice(0, last + 1).join(" ") };
 			}
-			let timer = 0;
-			const timeout = new Promise<never>((_, reject) => {
-				timer = setTimeout(() => reject(new Error("SMTP server did not answer within 20 seconds")), REPLY_TIMEOUT_MS);
-			});
-			const { value, done } = await Promise.race([reader.read(), timeout])
-				.catch((e) => {
-					dead = true;
-					throw e;
-				})
-				.finally(() => clearTimeout(timer));
+			const { value, done } = await within(reader.read(), "answer");
 			if (done) {
 				dead = true;
 				throw new Error("SMTP server closed the connection");
@@ -112,7 +125,7 @@ function wrap(socket: Socket) {
 		/** True once the server has timed out or hung up, so QUIT would only wait another 20 seconds. */
 		dead: () => dead,
 		async cmd(line: string, ...codes: number[]) {
-			await writer.write(new TextEncoder().encode(`${line}\r\n`));
+			await write(`${line}\r\n`);
 			return expect(...codes);
 		},
 		release() {
