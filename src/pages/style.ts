@@ -22,7 +22,7 @@ body { margin: 0 auto; max-width: 70ch; padding: 1.5em 16px 4em; font: var(--siz
 header { display: flex; flex-wrap: wrap; gap: 1.5em; font-size: .875em; margin-bottom: 3em; }
 header form { display: inline; margin: 0; }
 h1 { font-size: 1em; font-weight: 700; margin: 3em 0 .75em; }
-main > h1:first-child, main > form:first-child h1 { margin-top: 0; }
+main > h1:first-child, main > form:first-child > h1:first-child { margin-top: 0; }
 p, ul, details, form { margin: 0 0 1.5em; }
 .small { font-size: .875em; color: var(--muted); }
 .bad { color: var(--bad); }
@@ -45,7 +45,7 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; min-height: 60v
 .letters form { margin: 0; }
 .small + h1 { margin-top: .75em; }
 .body { white-space: pre-wrap; margin: 0 0 3em; }
-.fields { display: grid; grid-template-columns: 10em 1fr; gap: .75em 1em; align-items: baseline; }
+.fields { display: grid; grid-template-columns: 10em 1fr; gap: .75em 1em; align-items: baseline; margin-bottom: 1.5em; }
 .fields textarea { min-height: 8em; border: 1px solid var(--line); padding: .4em; }
 @media (max-width: 480px) {
 	.letters li { grid-template-columns: 1fr auto; }
