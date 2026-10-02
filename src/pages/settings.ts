@@ -60,6 +60,15 @@ export function settingsPage(view: View, settings: Settings, to: string, { notic
 	${row("css", "Custom CSS", html`<textarea id="css" name="css" spellcheck="false">${settings.css}</textarea>`)}
 	${hint("Added after the built-in styles on every page except this one.")}
 </div>
+<h1>Backup</h1>
+<div class="fields">
+	${row(
+		"backup",
+		"Monthly email",
+		html`<span><input type="hidden" name="backup" value="off"><input type="checkbox" id="backup" name="backup" value="on"${settings.backup && html` checked`}> Email me a backup every 30 days</span>`,
+	)}
+	${hint("The attachment holds every letter in plain text, sealed ones included, so a copy stays in your mailbox if Someday or Cloudflare goes away.")}
+</div>
 <p><button class="primary">Save</button></p>
 </form>
 <h1>Account</h1>

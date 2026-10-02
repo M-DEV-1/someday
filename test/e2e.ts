@@ -51,7 +51,7 @@ function mail(i: number): Mail {
 
 /** The parts of a backup file the test checks. */
 interface Backup {
-	settings: { theme: string };
+	settings: { theme: string; backup: boolean };
 	letters: { id: string; subject: string; body: string; delivered: string | null }[];
 }
 
@@ -153,6 +153,7 @@ try {
 		prefix: "Note from",
 		deliverIn: "12",
 		prompts: "One\nTwo",
+		backup: "off",
 		css: "body { margin: 0 }</style><script>alert(1)</script>",
 	});
 	assert.equal(saved.status, 303);
@@ -177,6 +178,7 @@ try {
 	assert.match(header(download, "content-disposition"), /attachment; filename="someday-backup-\d{4}-\d{2}-\d{2}\.json"/);
 	const backup = readBackup(await download.text());
 	assert.equal(backup.settings.theme, "dark");
+	assert.equal(backup.settings.backup, false, "an unticked checkbox turns the backup email off");
 	assert.deepEqual(backup.letters.map((l) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
 	assert.equal(backup.letters.find((l) => l.subject === "In a year")?.body, "Hi");
 

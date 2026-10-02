@@ -26,6 +26,8 @@ export interface Settings {
 	prompts: string[];
 	/** Added after the built-in styles on every page except Settings. */
 	css: string;
+	/** Whether a backup is emailed to the owner every 30 days. */
+	backup: boolean;
 }
 
 export const DEFAULTS: Settings = {
@@ -51,6 +53,7 @@ export const DEFAULTS: Settings = {
 		"What do you want to remember about this year?",
 	],
 	css: "",
+	backup: true,
 };
 
 /** The settings row. It is stored as one JSON object and read over the defaults, so settings added in later versions start at their default. */
@@ -104,6 +107,8 @@ export function checkSettings(raw: Record<string, unknown>): { settings: Setting
 			.map((p) => p.trim())
 			.filter(Boolean),
 		css: typeof raw["css"] === "string" ? raw["css"] : DEFAULTS.css,
+		// The form sends "off" from a hidden field, then "on" from the checkbox when it is ticked.
+		backup: raw["backup"] === true || raw["backup"] === "on" ? true : raw["backup"] === false || raw["backup"] === "off" ? false : DEFAULTS.backup,
 	};
 	const error =
 		settings.accent && !/^#[0-9a-f]{6}$/i.test(settings.accent)
