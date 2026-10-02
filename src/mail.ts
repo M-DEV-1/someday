@@ -109,12 +109,10 @@ function wrap(socket: Socket) {
 
 /** Builds a plain-text UTF-8 message. The body is base64, so no line can start with the "." that ends DATA. */
 function message(from: string, mail: Mail): string {
-	// Encoded words are kept short and folded so long or non-ASCII subjects stay under the 998-character header line limit.
-	const subject = (mail.subject.match(/.{1,30}/gsu) ?? [""]).map((chunk) => `=?UTF-8?B?${b64(chunk)}?=`).join("\r\n ");
 	return [
 		`From: Someday <${from}>`,
 		`To: <${mail.to}>`,
-		`Subject: ${subject}`,
+		`Subject: ${encodedWords(mail.subject)}`,
 		`Date: ${new Date().toUTCString()}`,
 		`Message-ID: <${crypto.randomUUID()}@${from.split("@")[1] ?? "someday"}>`,
 		"MIME-Version: 1.0",
@@ -123,6 +121,19 @@ function message(from: string, mail: Mail): string {
 		"",
 		b64(mail.text).replace(/.{76}/g, "$&\r\n"),
 	].join("\r\n");
+}
+
+/** Encodes a header value as RFC 2047 words of at most 45 UTF-8 bytes each, which keeps every word under the 75-character limit, folded onto separate lines. */
+function encodedWords(s: string): string {
+	const chunks = [""];
+	let bytes = 0;
+	for (const ch of s) {
+		const n = new TextEncoder().encode(ch).length;
+		if (bytes + n > 45) chunks.push(""), (bytes = 0);
+		chunks[chunks.length - 1] += ch;
+		bytes += n;
+	}
+	return chunks.map((chunk) => `=?UTF-8?B?${b64(chunk)}?=`).join("\r\n ");
 }
 
 /** Base64 of the UTF-8 bytes of `s`. */
