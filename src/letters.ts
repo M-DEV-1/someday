@@ -1,5 +1,5 @@
 import type { Cipher } from "./cipher";
-import { now } from "./time";
+import { DAY, now } from "./time";
 
 export interface LetterInput {
 	subject: string;
@@ -35,6 +35,8 @@ type Row = {
 	attempts: number;
 	last_error: string | null;
 };
+
+const RETRY_BASE = 5 * 60;
 
 /** Letter storage. Subject and body are encrypted together; dates and delivery state are stored in the clear so due letters can be found. */
 export class Letters {
@@ -88,6 +90,22 @@ export class Letters {
 			.exec<Row>("SELECT * FROM letters WHERE sent_at IS NULL AND COALESCE(retry_at, deliver_at) <= ? ORDER BY deliver_at LIMIT ?", now(), limit)
 			.toArray();
 		return Promise.all(rows.map((r) => this.unseal(r)));
+	}
+
+	markSent(id: string): void {
+		this.sql.exec("UPDATE letters SET sent_at = ?, retry_at = NULL, last_error = NULL WHERE id = ?", now(), id);
+	}
+
+	/** Records a failed attempt. The next try waits 5 minutes, doubling each time up to one day, and retries never stop. */
+	markFailed(id: string, error: string): void {
+		this.sql.exec(
+			"UPDATE letters SET attempts = attempts + 1, last_error = ?, retry_at = ? + MIN(? * (1 << MIN(attempts, 20)), ?) WHERE id = ?",
+			error,
+			now(),
+			RETRY_BASE,
+			DAY,
+			id,
+		);
 	}
 
 	private async unseal(r: Row): Promise<Letter> {
