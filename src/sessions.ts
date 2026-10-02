@@ -28,6 +28,11 @@ export class Sessions {
 		return token;
 	}
 
+	/** Deletes a link token whose email could not be sent, so it counts toward neither limit. */
+	async discardLink(link: string): Promise<void> {
+		this.sql.exec("DELETE FROM tokens WHERE hash = ? AND kind = 'link'", await sha256(link));
+	}
+
 	/** Uses up a sign-in link token. Returns a new session token, or null if the link is unknown, expired or already used. */
 	async redeemLink(link: string): Promise<string | null> {
 		const linkHash = await sha256(link);
@@ -48,7 +53,7 @@ export class Sessions {
 		this.sql.exec("DELETE FROM tokens WHERE hash = ? AND kind = 'session'", await sha256(session));
 	}
 
-	/** Deletes tokens that expired more than a day ago. Recent links are kept so the daily limit still counts them. */
+	/** Deletes tokens that expired more than a day ago. Unused links are kept for a day so the daily limit counts them; a used link is expired at once and stops counting at the next prune. */
 	prune(): void {
 		this.sql.exec("DELETE FROM tokens WHERE expires_at < ?", now() - DAY);
 	}

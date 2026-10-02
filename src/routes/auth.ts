@@ -21,6 +21,7 @@ export async function signIn(c: Ctx): Promise<Response> {
 			text: `Open this link to sign in to Someday:\n\n${c.url.origin}/auth?t=${link}\n\nIt works once, for 15 minutes. If you did not ask for it, ignore this email.\n`,
 		});
 	} catch (e) {
+		await c.store.discardLink(link);
 		return html(signInPage({ error: `The sign-in email could not be sent. ${(e as Error).message}` }), 502);
 	}
 	return html(signInPage({ sent: true }));
