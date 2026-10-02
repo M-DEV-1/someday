@@ -77,6 +77,10 @@ export class Letters {
 		return row ? this.unseal(row) : null;
 	}
 
+	remove(id: string): void {
+		this.sql.exec("DELETE FROM letters WHERE id = ?", id);
+	}
+
 	private async unseal(r: Row): Promise<Letter> {
 		const { subject, body } = JSON.parse(await this.cipher.open(r.sealed));
 		return { id: r.id, subject, body, tz: r.tz, createdAt: r.created_at, deliverAt: r.deliver_at, sentAt: r.sent_at, attempts: r.attempts, lastError: r.last_error };
