@@ -46,6 +46,10 @@ export class Store extends DurableObject<Env> {
 		return this.sessions.end(session);
 	}
 
+	signOutEverywhere() {
+		this.sessions.endAll();
+	}
+
 	addLetter(input: LetterInput) {
 		return this.letters.add(input);
 	}

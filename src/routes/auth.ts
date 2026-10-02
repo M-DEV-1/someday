@@ -42,3 +42,9 @@ export async function signOut(c: Ctx): Promise<Response> {
 	await c.store.signOut(c.session!);
 	return setSession(redirect("/"), null);
 }
+
+/** Ends every session, for a lost or shared device. */
+export async function signOutEverywhere(c: Ctx): Promise<Response> {
+	await c.store.signOutEverywhere();
+	return setSession(redirect("/"), null);
+}

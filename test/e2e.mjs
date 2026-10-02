@@ -131,10 +131,10 @@ try {
 	assert.deepEqual(letters.map((l) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
 	assert.equal(letters.find((l) => l.subject === "In a year").body, "Hi");
 
-	// Deleting and signing out.
+	// Deleting, and signing out everywhere.
 	assert.equal((await post("/letters/delete", { id: failingId })).status, 303);
 	assert.doesNotMatch(await text("/letters"), /Will fail/);
-	const out = await post("/signout", {});
+	const out = await post("/signout-all", {});
 	assert.match(out.headers.get("set-cookie"), /Max-Age=0/);
 	assert.equal((await get("/letters")).status, 303, "the old session no longer works");
 
