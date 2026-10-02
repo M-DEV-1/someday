@@ -53,6 +53,7 @@ export class Letters {
 			attempts INTEGER NOT NULL DEFAULT 0,
 			last_error TEXT
 		)`);
+		sql.exec("CREATE INDEX IF NOT EXISTS letters_due ON letters (sent_at, deliver_at)");
 	}
 
 	/** Encrypts and stores a letter. Returns its ID. */
@@ -79,6 +80,14 @@ export class Letters {
 
 	remove(id: string): void {
 		this.sql.exec("DELETE FROM letters WHERE id = ?", id);
+	}
+
+	/** Unsent letters whose delivery time, or retry time after a failure, has passed. */
+	async due(limit: number): Promise<Letter[]> {
+		const rows = this.sql
+			.exec<Row>("SELECT * FROM letters WHERE sent_at IS NULL AND COALESCE(retry_at, deliver_at) <= ? ORDER BY deliver_at LIMIT ?", now(), limit)
+			.toArray();
+		return Promise.all(rows.map((r) => this.unseal(r)));
 	}
 
 	private async unseal(r: Row): Promise<Letter> {
