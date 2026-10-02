@@ -6,7 +6,7 @@ Follow [Getting started](../README.md#getting-started). The Deploy to Cloudflare
 
 ## Change a setting
 
-Appearance, the greeting, the subject, the default delivery time, the prompts and custom CSS are on the **Settings** page of Someday itself. The same page sends a test email, downloads every letter as JSON, and signs out every browser.
+Appearance, the greeting, the subject, the default delivery time, the prompts and custom CSS are on the **Settings** page of Someday itself. The same page turns the monthly backup email on or off, sends a test email, downloads and restores backups, and signs out every browser.
 
 The four secrets are in Cloudflare. Open the Cloudflare dashboard, go to **Workers & Pages**, open the Worker, then **Settings → Variables and Secrets**. Edit `OWNER_EMAIL`, `SMTP_HOST`, `SMTP_USER` or `SMTP_PASSWORD` and save. The Worker picks up the new value on its next request.
 
@@ -25,6 +25,18 @@ The action keeps your `wrangler.jsonc`, since you may have renamed the Worker. I
 The action also skips `.github/`, because the workflow token cannot change workflow files. To pick up a changed workflow, copy it across by hand.
 
 The update is never scheduled. A broken version deployed while nobody is watching would stop letters; an old version that works keeps sending them.
+
+## Move to a new account
+
+Use this if Cloudflare changes its free plan, closes your account, or you want Someday somewhere else.
+
+1. Get a backup. The newest one is in your inbox, from the monthly backup email, subject "Someday backup". If the old Someday still runs, **Download a backup** on its Settings page gets a current one.
+2. Deploy a new Someday with the [Deploy button](../README.md#getting-started), into the new account.
+3. Sign in, open **Settings**, choose the backup file under **Restore**, and press **Restore**.
+
+Every letter comes back with its delivery date, delivered letters stay delivered, and sealed letters whose date passed in the meantime go out within 5 minutes. The settings come back too.
+
+If no Someday can run at all, the backup is plain JSON: each letter's `subject`, `body` and `deliver` date can be read with any text editor.
 
 ## Remove
 
@@ -54,14 +66,16 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | runs the Worker on http://localhost:8787 with local storage in `.wrangler/` |
-| `npm test` | starts `wrangler dev` on fresh storage against a fake SMTP server and walks sign-in, writing, delivery, a failed delivery, settings, the test email, the export and signing out everywhere |
-| `npm run typecheck` | runs TypeScript |
+| `npm run dev` | builds the browser scripts and runs the Worker on http://localhost:8787 with local storage in `.wrangler/` |
+| `npm run build` | bundles `src/client/` into `public/js/` with esbuild; `wrangler dev` and `wrangler deploy` run it first |
+| `npm test` | starts `wrangler dev` on fresh storage against a fake SMTP server and walks sign-in, writing, delivery, the backup email, a failed delivery, settings, the test email, backup download and restore, and signing out everywhere |
+| `npm run typecheck` | runs TypeScript on the Worker, the browser scripts and the test |
+| `npm run lint` | runs Biome's formatter check and linter |
 | `npm run deploy` | deploys from your machine with `wrangler deploy` |
 
 `SMTP_HOST=localhost:<port>` sends without TLS. Deployed Workers cannot reach localhost, so this only works in development.
 
-CI runs the type check, a dry-run bundle and `npm test` on pushes to `main` and on pull requests; see `.github/workflows/ci.yml`. A push from the update action does not start CI, which is why the update action runs the same checks itself.
+CI runs the type check, Biome, a dry-run bundle and `npm test` on pushes to `main` and on pull requests; see `.github/workflows/ci.yml`. A push from the update action does not start CI, which is why the update action runs the same checks itself.
 
 ## Things that can break over years
 
