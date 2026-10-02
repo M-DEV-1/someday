@@ -43,7 +43,8 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; min-height: 60v
 .letters li > .bad { grid-column: 2 / -1; }
 .letters time { font-variant-numeric: tabular-nums; color: var(--muted); }
 .letters form { margin: 0; }
-.body { white-space: pre-wrap; }
+.small + h1 { margin-top: .75em; }
+.body { white-space: pre-wrap; margin: 0 0 3em; }
 .fields { display: grid; grid-template-columns: 10em 1fr; gap: .75em 1em; align-items: baseline; }
 .fields textarea { min-height: 8em; border: 1px solid var(--line); padding: .4em; }
 @media (max-width: 480px) {

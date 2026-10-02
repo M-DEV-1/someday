@@ -23,13 +23,10 @@ ${confirmDeletes(view)}`,
 export function letterPage(view: View, letter: Letter): string {
 	return layout(
 		view,
-		`<div class="reading">
-<p class="muted"><a href="/letters">My letters</a></p>
-<h2>${esc(letter.subject)}</h2>
-<p class="muted">Written ${formatDate(letter.createdAt, letter.tz)} · delivered ${formatDate(letter.sentAt!, letter.tz)}</p>
-<div class="letter-body">${esc(letter.body)}</div>
+		`<p class="small">Written ${formatDate(letter.createdAt, letter.tz)}. Delivered ${formatDate(letter.sentAt!, letter.tz)}.</p>
+<h1>${esc(letter.subject)}</h1>
+<div class="body">${esc(letter.body)}</div>
 ${deleteForm(letter.id)}
-</div>
 ${confirmDeletes(view)}`,
 	);
 }
