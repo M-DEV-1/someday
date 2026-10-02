@@ -14,7 +14,7 @@ export async function settingsForm(c: OwnerCtx): Promise<Response> {
 			: q.has("restored")
 				? `Restored the settings and ${restored} ${restored === 1 ? "letter" : "letters"}. ${Number(q.get("skipped"))} were already here.`
 				: "";
-	return html(c, settingsPage(c.view, c.view.settings, c.env.OWNER_EMAIL, { notice }));
+	return html(c, settingsPage(c.view, c.view.settings, c.env.OWNER_EMAIL, { notice, backupError: (await c.store.backupError()) ?? "" }));
 }
 
 export async function saveSettings(c: OwnerCtx): Promise<Response> {

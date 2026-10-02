@@ -63,6 +63,10 @@ export class Store extends DurableObject<Env> {
 		return new Blob([await this.backups.file()]).stream();
 	}
 
+	backupError() {
+		return this.backups.lastError();
+	}
+
 	/** Restores an uploaded backup file, read from a stream so the Worker does not decode or parse it. */
 	async restoreFile(file: ReadableStream<Uint8Array>) {
 		return this.backups.restoreFile(await new Response(file).text());

@@ -12,8 +12,8 @@ const NAMES: Record<Settings["theme"] | Settings["font"], string> = {
 	mono: "Mono",
 };
 
-/** The settings page. `settings` is what the form shows, which after a failed save is what was submitted; `to` is the owner's address. The owner's custom CSS is left out of this page. */
-export function settingsPage(view: View, settings: Settings, to: string, { notice = "", error = "" } = {}): Html {
+/** The settings page. `settings` is what the form shows, which after a failed save is what was submitted; `to` is the owner's address; `backupError` is why the last backup email failed, if it did. The owner's custom CSS is left out of this page. */
+export function settingsPage(view: View, settings: Settings, to: string, { notice = "", error = "", backupError = "" } = {}): Html {
 	return layout(
 		view,
 		html`${notice && html`<p>${notice}</p>`}${error && html`<p class="bad">${error}</p>`}
@@ -68,6 +68,7 @@ export function settingsPage(view: View, settings: Settings, to: string, { notic
 		html`<span><input type="hidden" name="backup" value="off"><input type="checkbox" id="backup" name="backup" value="on"${settings.backup && html` checked`}> Email me a backup every 30 days</span>`,
 	)}
 	${hint("The attachment holds every letter in plain text, sealed ones included, so a copy stays in your mailbox if Someday or Cloudflare goes away.")}
+	${backupError && html`<span></span><span class="small bad">The last backup email could not be sent: ${backupError} It is tried again every day.</span>`}
 </div>
 <p><button class="primary">Save</button></p>
 </form>
