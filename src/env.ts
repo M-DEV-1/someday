@@ -20,7 +20,7 @@ export function missingConfig(env: Env): string[] {
 /** Sends as the SMTP login when it is an address, otherwise as the owner. */
 export function smtpConfig(env: Env): SmtpConfig {
 	const user = env.SMTP_USER.trim();
-	return { host: env.SMTP_HOST, user, password: env.SMTP_PASSWORD, from: user.includes("@") ? user : env.OWNER_EMAIL.trim() };
+	return { host: env.SMTP_HOST, user, password: env.SMTP_PASSWORD.trim(), from: user.includes("@") ? user : env.OWNER_EMAIL.trim() };
 }
 
 export function isOwner(env: Env, email: string): boolean {
