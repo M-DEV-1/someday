@@ -10,6 +10,32 @@ export interface LetterInput {
 	tz: string;
 }
 
+export interface LetterSummary {
+	id: string;
+	subject: string;
+	tz: string;
+	createdAt: number;
+	deliverAt: number;
+	sentAt: number | null;
+	attempts: number;
+	lastError: string | null;
+}
+
+export interface Letter extends LetterSummary {
+	body: string;
+}
+
+type Row = {
+	id: string;
+	sealed: ArrayBuffer;
+	tz: string;
+	created_at: number;
+	deliver_at: number;
+	sent_at: number | null;
+	attempts: number;
+	last_error: string | null;
+};
+
 /** Letter storage. Subject and body are encrypted together; dates and delivery state are stored in the clear so due letters can be found. */
 export class Letters {
 	constructor(
@@ -35,6 +61,19 @@ export class Letters {
 		const sealed = await this.cipher.seal(JSON.stringify({ subject: input.subject, body: input.body }));
 		this.sql.exec("INSERT INTO letters (id, sealed, tz, created_at, deliver_at) VALUES (?, ?, ?, ?, ?)", id, sealed, input.tz, now(), input.deliverAt);
 		return id;
+	}
+
+	/** Every letter, soonest delivery first, without bodies. */
+	async list(): Promise<LetterSummary[]> {
+		// ponytail: decrypts every row on each listing, add paging if an owner ever keeps thousands of letters
+		const rows = this.sql.exec<Row>("SELECT * FROM letters ORDER BY deliver_at").toArray();
+		const letters = await Promise.all(rows.map((r) => this.unseal(r)));
+		return letters.map(({ body: _, ...summary }) => summary);
+	}
+
+	private async unseal(r: Row): Promise<Letter> {
+		const { subject, body } = JSON.parse(await this.cipher.open(r.sealed));
+		return { id: r.id, subject, body, tz: r.tz, createdAt: r.created_at, deliverAt: r.deliver_at, sentAt: r.sent_at, attempts: r.attempts, lastError: r.last_error };
 	}
 }
 
