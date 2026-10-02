@@ -1,5 +1,3 @@
-import { field } from "./http";
-
 export const DELIVERY_CHOICES: [months: number, label: string][] = [
 	[6, "6 months"],
 	[12, "1 year"],
@@ -63,7 +61,9 @@ export class SettingsStore {
 
 	get(): Settings {
 		const row = this.sql.exec<{ json: string }>("SELECT json FROM settings").toArray()[0];
-		return row ? { ...DEFAULTS, ...JSON.parse(row.json) } : DEFAULTS;
+		if (!row) return DEFAULTS;
+		const raw: unknown = JSON.parse(row.json);
+		return typeof raw === "object" && raw !== null ? checkSettings({ ...raw }).settings : DEFAULTS;
 	}
 
 	save(settings: Settings): void {
@@ -71,19 +71,35 @@ export class SettingsStore {
 	}
 }
 
-/** Reads the settings form. Unknown choices fall back to the default; text that is too long or a malformed colour returns an error naming the field. */
+/** Reads the settings form. */
 export function readSettings(form: FormData): { settings: Settings; error: string | undefined } {
-	const pick = <T>(value: T, allowed: readonly T[], fallback: T): T => (allowed.includes(value) ? value : fallback);
+	return checkSettings(Object.fromEntries([...form].filter((e): e is [string, string] => typeof e[1] === "string")));
+}
+
+/**
+ * Checks settings from the form or the database. Input: any object; prompts may be an array or one string with a prompt per line.
+ * Output: settings where a missing value or an unknown choice is replaced by the default, and an error naming the first field that is too long or a malformed colour.
+ */
+export function checkSettings(raw: Record<string, unknown>): { settings: Settings; error: string | undefined } {
+	const text = (key: keyof Settings): string | undefined => {
+		const v = raw[key];
+		return typeof v === "string" ? v.trim() : undefined;
+	};
+	const choice = <T>(value: unknown, allowed: readonly T[], fallback: T): T => allowed.find((a) => a === value) ?? fallback;
+	const prompts = raw["prompts"];
 	const settings: Settings = {
-		theme: pick(field(form, "theme") as Settings["theme"], THEMES, DEFAULTS.theme),
-		font: pick(field(form, "font") as Settings["font"], FONTS, DEFAULTS.font),
-		size: pick(Number(field(form, "size")), SIZES, DEFAULTS.size),
-		accent: field(form, "accent").trim(),
-		greeting: field(form, "greeting").trim(),
-		prefix: field(form, "prefix").trim(),
-		deliverIn: pick(Number(field(form, "deliverIn")), DELIVERY_CHOICES.map(([m]) => m), DEFAULTS.deliverIn),
-		prompts: field(form, "prompts").split("\n").map((p) => p.trim()).filter(Boolean),
-		css: field(form, "css"),
+		theme: choice(raw["theme"], THEMES, DEFAULTS.theme),
+		font: choice(raw["font"], FONTS, DEFAULTS.font),
+		size: choice(Number(raw["size"]), SIZES, DEFAULTS.size),
+		accent: text("accent") ?? DEFAULTS.accent,
+		greeting: text("greeting") ?? DEFAULTS.greeting,
+		prefix: text("prefix") ?? DEFAULTS.prefix,
+		deliverIn: choice(Number(raw["deliverIn"]), DELIVERY_CHOICES.map(([m]) => m), DEFAULTS.deliverIn),
+		prompts: (Array.isArray(prompts) ? prompts : typeof prompts === "string" ? prompts.split("\n") : DEFAULTS.prompts)
+			.filter((p): p is string => typeof p === "string")
+			.map((p) => p.trim())
+			.filter(Boolean),
+		css: typeof raw["css"] === "string" ? raw["css"] : DEFAULTS.css,
 	};
 	const error =
 		settings.accent && !/^#[0-9a-f]{6}$/i.test(settings.accent) ? "Accent must be a colour like #1a5fb4, or empty."
