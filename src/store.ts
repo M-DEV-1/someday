@@ -28,10 +28,6 @@ export class Store extends DurableObject<Env> {
 		return this.sessions.createLink();
 	}
 
-	discardLink(link: string) {
-		return this.sessions.discardLink(link);
-	}
-
 	redeemLink(link: string) {
 		return this.sessions.redeemLink(link);
 	}

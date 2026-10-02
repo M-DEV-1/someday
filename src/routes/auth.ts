@@ -3,7 +3,10 @@ import { type Ctx, field, html, type OwnerCtx, redirect, setSession } from "../h
 import { errorText, sendOne } from "../mail";
 import { confirmPage, signInPage } from "../pages/signin";
 
-/** Emails a sign-in link when the address is the owner's. Any other address gets the same check-your-inbox page and no email. */
+/**
+ * Emails a sign-in link when the address is the owner's. Any other address gets the same check-your-inbox page and no email.
+ * The email is sent after the response, and a failed send only goes to the Worker's logs, so the page, its status and its timing are the same for every address.
+ */
 export async function signIn(c: Ctx): Promise<Response> {
 	const problems = configProblems(c.env);
 	if (problems.length)
@@ -16,16 +19,13 @@ export async function signIn(c: Ctx): Promise<Response> {
 	const link = await c.store.createLink();
 	if (!link) return html(c, signInPage(c.view, { sent: true }));
 
-	try {
-		await sendOne(smtpConfig(c.env), {
-			to: c.env.OWNER_EMAIL.trim(),
-			subject: "Your Someday sign-in link",
-			text: `Open this link to sign in to Someday:\n\n${c.url.origin}/auth?t=${link}\n\nIt works once, for 15 minutes. If you did not ask for it, ignore this email.\n`,
-		});
-	} catch (e) {
-		await c.store.discardLink(link);
-		return html(c, signInPage(c.view, { error: `The sign-in email could not be sent. ${errorText(e)}` }), 502);
-	}
+	// A failed send still counts toward the limit, so a stranger cannot make the Worker retry the owner's SMTP login without end.
+	const mail = {
+		to: c.env.OWNER_EMAIL.trim(),
+		subject: "Your Someday sign-in link",
+		text: `Open this link to sign in to Someday:\n\n${c.url.origin}/auth?t=${link}\n\nIt works once, for 15 minutes. If you did not ask for it, ignore this email.\n`,
+	};
+	c.waitUntil(sendOne(smtpConfig(c.env), mail).catch((e) => console.error(`Sign-in email failed: ${errorText(e)}`)));
 	return html(c, signInPage(c.view, { sent: true }));
 }
 

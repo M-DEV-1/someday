@@ -12,6 +12,8 @@ export interface Ctx {
 	session: string | null;
 	params: string[];
 	view: View;
+	/** Keeps the Worker running after the response for work the visitor should not wait on. */
+	waitUntil(work: Promise<unknown>): void;
 }
 
 /** The context of a route that needs the owner signed in. */

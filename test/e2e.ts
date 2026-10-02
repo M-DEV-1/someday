@@ -71,8 +71,13 @@ function readBackup(json: string): Backup {
 /** Triggers the cron handler and waits until `done()` holds, since the handler finishes in the background. */
 async function runCron(done: () => boolean | Promise<boolean>) {
 	await get("/__scheduled?cron=*/5+*+*+*+*");
+	await waitFor(done, "cron run did not finish");
+}
+
+/** Waits up to 10 seconds for `done()` to hold, for work the Worker finishes after responding. */
+async function waitFor(done: () => boolean | Promise<boolean>, message: string) {
 	for (let i = 0; i < 40 && !(await done()); i++) await sleep(250);
-	assert.ok(await done(), "cron run did not finish");
+	assert.ok(await done(), message);
 }
 
 try {
@@ -100,12 +105,15 @@ try {
 	assert.equal(smtp.inbox.length, 0, "a stranger's address gets no mail");
 
 	// The owner gets a one-time link; a second request within a minute looks the same but sends nothing.
-	assert.equal((await post("/signin", { email: "ME@example.com" })).status, 200);
-	assert.equal(smtp.inbox.length, 1);
+	const ownerPage = await post("/signin", { email: "ME@example.com" });
+	assert.equal(ownerPage.status, 200);
+	assert.match(await ownerPage.text(), /a sign-in link is on its way/, "the owner gets the same page as a stranger");
+	await waitFor(() => smtp.inbox.length === 1, "no sign-in email");
 	assert.equal(mail(0).subject, "Your Someday sign-in link");
 	const link = grab(mail(0).text, /\/auth\?t=([\w-]+)/);
 	assert.match(await (await post("/signin", { email: OWNER })).text(), /a sign-in link is on its way/);
-	assert.equal(smtp.inbox.length, 1);
+	await sleep(1000);
+	assert.equal(smtp.inbox.length, 1, "a second link within a minute is not sent");
 
 	// Opening the link only shows a button; pressing it signs in once.
 	assert.match(await text(`/auth?t=${link}`), /Sign in to Someday/);

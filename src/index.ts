@@ -34,9 +34,9 @@ const ROUTES: Route[] = [
 ];
 
 export default {
-	async fetch(req, env) {
+	async fetch(req, env, ctx) {
 		try {
-			return await route(req, env);
+			return await route(req, env, ctx);
 		} catch (e) {
 			// The stack goes to the Worker's logs; the visitor gets a plain page without it.
 			console.error(e);
@@ -53,7 +53,7 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 /** Finds the route for a request, checks the session, and runs the handler. */
-async function route(req: Request, env: Env): Promise<Response> {
+async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 	const url = new URL(req.url);
 	for (const r of ROUTES) {
 		const [method, path] = r;
@@ -68,7 +68,16 @@ async function route(req: Request, env: Env): Promise<Response> {
 		const cookie = sessionCookie(req);
 		const settings = cookie ? await store.session(cookie) : null;
 		const session = settings ? cookie : null;
-		const c: Ctx = { req, env, url, store, session, params: match.slice(1), view: { nonce: newNonce(), signedIn: !!settings, settings: settings ?? DEFAULTS } };
+		const c: Ctx = {
+			req,
+			env,
+			url,
+			store,
+			session,
+			params: match.slice(1),
+			waitUntil: (work) => ctx.waitUntil(work),
+			view: { nonce: newNonce(), signedIn: !!settings, settings: settings ?? DEFAULTS },
+		};
 		if (!r[3]) return r[2](c);
 		if (!session) return req.method === "GET" ? redirect("/") : new Response("Sign in first", { status: 403 });
 		return r[2]({ ...c, session });

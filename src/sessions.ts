@@ -28,11 +28,6 @@ export class Sessions {
 		return token;
 	}
 
-	/** Deletes a link token whose email could not be sent, so it counts toward neither limit. */
-	async discardLink(link: string): Promise<void> {
-		this.sql.exec("DELETE FROM tokens WHERE hash = ? AND kind = 'link'", await sha256(link));
-	}
-
 	/** Uses up a sign-in link token. Returns a new session token, or null if the link is unknown, expired or already used. */
 	async redeemLink(link: string): Promise<string | null> {
 		const linkHash = await sha256(link);
