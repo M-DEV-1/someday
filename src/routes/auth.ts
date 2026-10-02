@@ -1,7 +1,7 @@
 import { isOwner, missingConfig, smtpConfig } from "../env";
-import { field, html, type Ctx } from "../http";
+import { field, html, redirect, setSession, type Ctx } from "../http";
 import { sendOne } from "../mail";
-import { signInPage } from "../pages/signin";
+import { confirmPage, signInPage } from "../pages/signin";
 
 /** Emails a sign-in link when the address is the owner's. Any other address gets the same check-your-inbox page and no email. */
 export async function signIn(c: Ctx): Promise<Response> {
@@ -24,4 +24,14 @@ export async function signIn(c: Ctx): Promise<Response> {
 		return html(signInPage({ error: `The sign-in email could not be sent. ${(e as Error).message}` }), 502);
 	}
 	return html(signInPage({ sent: true }));
+}
+
+export async function confirmLink(c: Ctx): Promise<Response> {
+	return html(confirmPage(c.url.searchParams.get("t") ?? ""));
+}
+
+export async function redeemLink(c: Ctx): Promise<Response> {
+	const session = await c.store.redeemLink(field(await c.req.formData(), "t"));
+	if (!session) return html(signInPage({ error: "That sign-in link has expired or was already used. Ask for a new one." }), 401);
+	return setSession(redirect("/"), session);
 }

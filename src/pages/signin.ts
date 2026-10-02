@@ -16,3 +16,14 @@ export function signInPage({ sent = false, error = "" } = {}): string {
 ${form}
 </div>`);
 }
+
+/** Shown when the sign-in link is opened. Signing in takes a button press, so mail scanners that open links do not use up the link. */
+export function confirmPage(link: string): string {
+	return layout(`<div class="narrow">
+<h1>Welcome back</h1>
+<form class="card" method="post" action="/auth">
+	<input type="hidden" name="t" value="${esc(link)}">
+	<button class="big">Sign in to Someday</button>
+</form>
+</div>`);
+}
