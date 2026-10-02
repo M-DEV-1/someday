@@ -21,7 +21,7 @@ export interface Restore {
 	letters: StoredLetter[];
 }
 
-export interface BackupLetter {
+interface BackupLetter {
 	id: string;
 	subject: string;
 	body: string;
