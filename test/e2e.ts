@@ -165,7 +165,18 @@ try {
 	await sleep(2500);
 	await runCron(() => smtp.inbox.some((m) => m.subject === "After the refusal"));
 	assert.match(await text("/letters"), /Refuse me[\s\S]*Could not send, 1 try, retrying: SMTP server said: 554 5\.7\.1/);
+
+	// Two refusals in a row stop the pass, so the letters after them wait untouched instead of all collecting failed tries.
+	smtp.refuseSubject = "Refuse";
+	await post("/letters", { subject: "Refuse again", body: "x", deliver_at: inSeconds(1), tz: "UTC" });
+	await post("/letters", { subject: "Refuse once more", body: "x", deliver_at: inSeconds(2), tz: "UTC" });
+	await post("/letters", { subject: "After two refusals", body: "z", deliver_at: inSeconds(3), tz: "UTC" });
+	await sleep(3500);
+	await runCron(async () => /Refuse once more[\s\S]*Could not send, 1 try/.test(await text("/letters")));
+	assert.match(await text("/letters"), /<span>After two refusals<\/span>/);
+	assert.doesNotMatch(await text("/letters"), /After two refusals<\/span>(?:(?!<\/li>).)*Could not send/, "the letter after two refusals is untouched");
 	smtp.refuseSubject = "";
+	await runCron(() => smtp.inbox.some((m) => m.subject === "After two refusals"));
 
 	// A failed login is shown on the letter and retried later instead of being dropped.
 	smtp.rejectAuth = true;
@@ -220,7 +231,16 @@ try {
 	const backup = readBackup(backupJson);
 	assert.equal(backup.settings.theme, "dark");
 	assert.equal(backup.settings.backup, false, "an unticked checkbox turns the backup email off");
-	assert.deepEqual(backup.letters.map((l) => l.subject).sort(), ["After the refusal", "Héllo <future> ✉", "In a year", "Refuse me", "Will fail"]);
+	assert.deepEqual(backup.letters.map((l) => l.subject).sort(), [
+		"After the refusal",
+		"After two refusals",
+		"Héllo <future> ✉",
+		"In a year",
+		"Refuse again",
+		"Refuse me",
+		"Refuse once more",
+		"Will fail",
+	]);
 	assert.equal(backup.letters.find((l) => l.subject === "In a year")?.body, "Hi");
 
 	// Deleting, and signing out everywhere.
@@ -231,12 +251,12 @@ try {
 	assert.equal((await post("/settings", { theme: "light" })).status, 303);
 	const restored = await restore(backupJson);
 	assert.equal(restored.status, 303);
-	assert.match(await text(header(restored, "location")), /Restored the settings and 1 letter\. 4 were already here\./);
+	assert.match(await text(header(restored, "location")), /Restored the settings and 1 letter\. 7 were already here\./);
 	assert.match(await text("/letters"), /Will fail/);
 	assert.match(await text("/"), /data-theme="dark"/);
 	assert.equal((await get(`/letters/${failingId}`)).status, 303, "a restored sealed letter stays sealed");
 	assert.match(await text(`/letters/${soonId}`), /Dear me,\nstill here\?/);
-	assert.match(await text(header(await restore(backupJson), "location")), /Restored the settings and 0 letters\. 5 were already here\./);
+	assert.match(await text(header(await restore(backupJson), "location")), /Restored the settings and 0 letters\. 8 were already here\./);
 	assert.equal((await restore("{}")).status, 400);
 
 	// A restored letter whose date passed while it was away goes out on the next pass.

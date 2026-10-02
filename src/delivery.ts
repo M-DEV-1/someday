@@ -8,7 +8,8 @@ const BATCH = 25;
 
 /**
  * Sends due letters to the owner over one SMTP connection. Output: how many were sent.
- * If the connection or login fails, every due letter is marked failed. If the server refuses one letter, only that letter is marked failed, the session is reset, and the pass goes on with the next letter. If the connection is lost, the pass stops and the rest wait for the next pass. Failed letters are retried with backoff.
+ * If the connection or login fails, every due letter is marked failed. If the server refuses one letter, only that letter is marked failed, the session is reset, and the pass goes on with the next letter.
+ * If two letters in a row are refused, the server is likely refusing everything (a daily sending limit, for example), so the pass stops and the rest wait untouched instead of each moving toward the one-day backoff. The pass also stops when the connection is lost. Failed letters are retried with backoff.
  */
 export async function deliverDue(letters: Letters, env: Env): Promise<number> {
 	const due = await letters.due(BATCH);
@@ -30,17 +31,20 @@ export async function deliverDue(letters: Letters, env: Env): Promise<number> {
 	}
 
 	let sent = 0;
+	let refusedInARow = 0;
 	try {
 		for (const letter of due) {
 			try {
 				await smtp.send(letterMail(letter, env.OWNER_EMAIL.trim()));
 			} catch (e) {
 				letters.markFailed(letter.id, errorText(e));
-				if (await smtp.reset()) continue;
+				refusedInARow++;
+				if (refusedInARow < 2 && (await smtp.reset())) continue;
 				break;
 			}
 			letters.markSent(letter.id);
 			sent++;
+			refusedInARow = 0;
 		}
 	} finally {
 		await smtp.close();

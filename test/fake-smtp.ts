@@ -1,4 +1,4 @@
-// A minimal plaintext SMTP server for the end-to-end test. It accepts any login unless `rejectAuth` is set, refuses messages whose subject is `refuseSubject`, and decodes each accepted message into `inbox`.
+// A minimal plaintext SMTP server for the end-to-end test. It accepts any login unless `rejectAuth` is set, refuses messages whose subject starts with `refuseSubject`, and decodes each accepted message into `inbox`.
 import net from "node:net";
 
 export interface Mail {
@@ -31,7 +31,7 @@ export function startFakeSmtp(port: number): FakeSmtp {
 					if (line === ".") {
 						const mail = decode(data);
 						data = null;
-						if (mail.subject === smtp.refuseSubject) say("554 5.7.1 Message refused");
+						if (smtp.refuseSubject && mail.subject.startsWith(smtp.refuseSubject)) say("554 5.7.1 Message refused");
 						else {
 							smtp.inbox.push(mail);
 							say("250 queued");
