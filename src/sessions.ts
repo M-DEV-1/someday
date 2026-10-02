@@ -47,6 +47,11 @@ export class Sessions {
 	async end(session: string): Promise<void> {
 		this.sql.exec("DELETE FROM tokens WHERE hash = ? AND kind = 'session'", await sha256(session));
 	}
+
+	/** Deletes tokens that expired more than a day ago. Recent links are kept so the daily limit still counts them. */
+	prune(): void {
+		this.sql.exec("DELETE FROM tokens WHERE expires_at < ?", now() - DAY);
+	}
 }
 
 /** Returns a random 32-byte base64url token and its hash. */
