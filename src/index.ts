@@ -1,7 +1,7 @@
 import type { Env } from "./env";
 import { html, redirect, sessionCookie, type Ctx } from "./http";
 import { signInPage } from "./pages/signin";
-import { confirmLink, redeemLink, signIn } from "./routes/auth";
+import { confirmLink, redeemLink, signIn, signOut } from "./routes/auth";
 import { Store } from "./store";
 
 export { Store };
@@ -14,6 +14,7 @@ const ROUTES: [string, RegExp, Handler, boolean][] = [
 	["POST", /^\/signin$/, signIn, false],
 	["GET", /^\/auth$/, confirmLink, false],
 	["POST", /^\/auth$/, redeemLink, false],
+	["POST", /^\/signout$/, signOut, true],
 ];
 
 export default {

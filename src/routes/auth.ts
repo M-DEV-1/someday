@@ -35,3 +35,8 @@ export async function redeemLink(c: Ctx): Promise<Response> {
 	if (!session) return html(signInPage({ error: "That sign-in link has expired or was already used. Ask for a new one." }), 401);
 	return setSession(redirect("/"), session);
 }
+
+export async function signOut(c: Ctx): Promise<Response> {
+	await c.store.signOut(c.session!);
+	return setSession(redirect("/"), null);
+}
