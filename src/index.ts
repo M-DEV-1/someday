@@ -2,6 +2,7 @@ import type { Env } from "./env";
 import { html, redirect, sessionCookie, type Ctx } from "./http";
 import { signInPage } from "./pages/signin";
 import { confirmLink, redeemLink, signIn, signOut } from "./routes/auth";
+import { createLetter, writeForm } from "./routes/letters";
 import { Store } from "./store";
 
 export { Store };
@@ -10,11 +11,12 @@ type Handler = (c: Ctx) => Promise<Response>;
 
 /** Method, path pattern, handler, and whether the route needs a signed-in session. */
 const ROUTES: [string, RegExp, Handler, boolean][] = [
-	["GET", /^\/$/, async () => html(signInPage()), false],
+	["GET", /^\/$/, (c) => (c.session ? writeForm(c) : Promise.resolve(html(signInPage()))), false],
 	["POST", /^\/signin$/, signIn, false],
 	["GET", /^\/auth$/, confirmLink, false],
 	["POST", /^\/auth$/, redeemLink, false],
 	["POST", /^\/signout$/, signOut, true],
+	["POST", /^\/letters$/, createLetter, true],
 ];
 
 export default {
