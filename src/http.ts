@@ -1,4 +1,5 @@
 import type { Env } from "./env";
+import type { Settings } from "./settings";
 import type { Store } from "./store";
 
 /** What a route handler gets: the request, env, the store stub, the session token if signed in, and the path match. */
@@ -12,10 +13,11 @@ export interface Ctx {
 	view: View;
 }
 
-/** What every page needs to render: the nonce that lets its one style and script element run, and whether the owner is signed in. */
+/** What every page needs to render: the nonce that lets its style and script elements run, whether the owner is signed in, and the owner's settings (the defaults when signed out). */
 export interface View {
 	nonce: string;
 	signedIn: boolean;
+	settings: Settings;
 }
 
 const COOKIE = "someday";

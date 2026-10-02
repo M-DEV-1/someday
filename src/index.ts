@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { html, newNonce, redirect, sessionCookie, type Ctx } from "./http";
 import { signInPage } from "./pages/signin";
+import { DEFAULTS } from "./settings";
 import { confirmLink, redeemLink, signIn, signOut } from "./routes/auth";
 import { createLetter, deleteLetter, listLetters, readLetter, writeForm } from "./routes/letters";
 import { Store } from "./store";
@@ -35,9 +36,10 @@ export default {
 
 			const store = env.STORE.getByName("main");
 			const cookie = sessionCookie(req);
-			const session = cookie && (await store.isSignedIn(cookie)) ? cookie : null;
+			const settings = cookie ? await store.session(cookie) : null;
+			const session = settings ? cookie : null;
 			if (needsSession && !session) return req.method === "GET" ? redirect("/") : new Response("Sign in first", { status: 403 });
-			return handler({ req, env, url, store, session, params: match.slice(1), view: { nonce: newNonce(), signedIn: !!session } });
+			return handler({ req, env, url, store, session, params: match.slice(1), view: { nonce: newNonce(), signedIn: !!settings, settings: settings ?? DEFAULTS } });
 		}
 		// Unknown routes return before the Durable Object is touched, so scanner traffic costs nothing.
 		return new Response("Not found", { status: 404 });
