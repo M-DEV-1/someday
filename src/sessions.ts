@@ -1,6 +1,8 @@
-import { now } from "./time";
+import { DAY, now } from "./time";
 
 const LINK_TTL = 15 * 60;
+const LINK_GAP = 60;
+const LINKS_PER_DAY = 10;
 
 /** One-time sign-in links and browser sessions. Only SHA-256 hashes of tokens are stored. */
 export class Sessions {
@@ -13,10 +15,14 @@ export class Sessions {
 		)`);
 	}
 
-	/** Creates a sign-in link token valid for 15 minutes. */
+	/** Creates a sign-in link token valid for 15 minutes. Returns null if a link was made in the last minute or 10 were made in the last day, which caps how much mail a stranger can trigger. */
 	async createLink(): Promise<string | null> {
 		const [token, hash] = await newToken();
 		const t = now();
+		const { n, latest } = this.sql
+			.exec<{ n: number; latest: number | null }>("SELECT COUNT(*) AS n, MAX(created_at) AS latest FROM tokens WHERE kind = 'link' AND created_at > ?", t - DAY)
+			.one();
+		if (n >= LINKS_PER_DAY || (latest ?? 0) > t - LINK_GAP) return null;
 		this.sql.exec("INSERT INTO tokens VALUES (?, 'link', ?, ?)", hash, t, t + LINK_TTL);
 		return token;
 	}
