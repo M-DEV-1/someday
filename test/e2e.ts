@@ -135,6 +135,7 @@ try {
 	const delivered = mail(1);
 	assert.equal(delivered.to, `<${OWNER}>`);
 	assert.equal(delivered.subject, "Héllo <future> ✉");
+	assert.match(delivered.messageId, new RegExp(`^<${soonId}@`), "the Message-ID comes from the letter, so a resend is the same message");
 	assert.match(delivered.text, /^Dear me,\nstill here\?\n\n--\nYou wrote this on /);
 	assert.match(await text(`/letters/${soonId}`), /Héllo &#60;future&#62; ✉[\s\S]*Dear me,\nstill here\?/);
 	assert.match(await text("/letters"), /Sealed<\/h1>[\s\S]*In a year[\s\S]*Delivered<\/h1>[\s\S]*Héllo/);

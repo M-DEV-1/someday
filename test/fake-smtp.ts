@@ -4,6 +4,7 @@ import net from "node:net";
 export interface Mail {
 	to: string;
 	subject: string;
+	messageId: string;
 	text: string;
 	attachments: { filename: string; content: string }[];
 }
@@ -62,7 +63,7 @@ function decode(raw: string): Mail {
 		.replace(/\?= =\?/g, "?==?")
 		.replace(/=\?UTF-8\?B\?([^?]*)\?=/g, (_, b: string) => unbase64(b));
 	const boundary = header("Content-Type").match(/boundary="([^"]+)"/)?.[1];
-	if (!boundary) return { to: header("To"), subject, text: unbase64(body), attachments: [] };
+	if (!boundary) return { to: header("To"), subject, messageId: header("Message-ID"), text: unbase64(body), attachments: [] };
 	const parts = body
 		.split(`--${boundary}`)
 		.slice(1, -1)
@@ -70,7 +71,13 @@ function decode(raw: string): Mail {
 			const [partHead = "", partBody = ""] = part.replace(/^\r\n/, "").split("\r\n\r\n");
 			return { filename: partHead.match(/filename="([^"]+)"/)?.[1] ?? "", content: unbase64(partBody) };
 		});
-	return { to: header("To"), subject, text: parts.find((p) => !p.filename)?.content ?? "", attachments: parts.filter((p) => p.filename) };
+	return {
+		to: header("To"),
+		subject,
+		messageId: header("Message-ID"),
+		text: parts.find((p) => !p.filename)?.content ?? "",
+		attachments: parts.filter((p) => p.filename),
+	};
 }
 
 function unbase64(s: string): string {

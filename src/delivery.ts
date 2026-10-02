@@ -50,5 +50,10 @@ export async function deliverDue(letters: Letters, env: Env): Promise<number> {
 function letterMail(letter: Letter, to: string): Mail {
 	const written = formatDate(letter.createdAt, letter.tz);
 	const promised = formatDate(letter.deliverAt, letter.tz);
-	return { to, subject: letter.subject, text: `${letter.body}\n\n--\nYou wrote this on ${written} and asked Someday to deliver it on ${promised}.\n` };
+	return {
+		to,
+		id: letter.id,
+		subject: letter.subject,
+		text: `${letter.body}\n\n--\nYou wrote this on ${written} and asked Someday to deliver it on ${promised}.\n`,
+	};
 }

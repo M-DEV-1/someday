@@ -12,6 +12,8 @@ export interface Mail {
 	to: string;
 	subject: string;
 	text: string;
+	/** Makes the Message-ID, so a letter sent again after a restart is the same message and providers that remove duplicates, such as Gmail, show it once. A random ID is used when absent. */
+	id?: string;
 	/** A file sent with the text, such as a backup. */
 	attachment?: { filename: string; type: string; content: string };
 }
@@ -127,7 +129,7 @@ function message(from: string, mail: Mail): string {
 		`To: <${mail.to}>`,
 		`Subject: ${encodedWords(mail.subject)}`,
 		`Date: ${new Date().toUTCString()}`,
-		`Message-ID: <${crypto.randomUUID()}@${from.split("@")[1] ?? "someday"}>`,
+		`Message-ID: <${mail.id ?? crypto.randomUUID()}@${from.split("@")[1] ?? "someday"}>`,
 		"MIME-Version: 1.0",
 	];
 	const text = ["Content-Type: text/plain; charset=utf-8", "Content-Transfer-Encoding: base64", "", base64Lines(mail.text)];
