@@ -14,6 +14,13 @@ export async function deliverDue(letters: Letters, env: Env): Promise<number> {
 	const due = await letters.due(BATCH);
 	if (!due.length) return 0;
 
+	// Recorded on each letter, because the letters page is the only place a broken setup can show up.
+	const problems = configProblems(env);
+	if (problems.length) {
+		for (const letter of due) letters.markFailed(letter.id, `Not set up: ${problems.join(" ")}`);
+		return 0;
+	}
+
 	let smtp: Awaited<ReturnType<typeof openSmtp>>;
 	try {
 		smtp = await openSmtp(smtpConfig(env));
