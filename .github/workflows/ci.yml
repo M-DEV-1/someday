@@ -19,6 +19,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      # Fails on unused files, exports and dependencies.
+      - run: npm run knip
       # Bundles the Worker and validates wrangler.jsonc without a Cloudflare account.
       - run: npx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/dist"
       # Starts wrangler dev against a fake SMTP server on ports 8799 and 2525; see test/e2e.ts.
