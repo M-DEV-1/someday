@@ -18,9 +18,11 @@ Write a letter, pick a date, and it arrives in your inbox on that day, in a mont
 
 ## What Someday does
 
-**Writes like FutureMe.** A letter starts "Dear future me,", the subject reads "A letter from" today's date, and delivery is one click: 6 months, 1, 3, 5 or 10 years, or any date you pick. "Inspire me" offers a question to write about, and full screen hides everything but the letter.
+**Writes like FutureMe.** The write page is a subject line and the letter. A letter starts "Dear future me,", the subject reads "A letter from" today's date, and delivery is one choice: 6 months, 1, 3, 5 or 10 years, or any date you pick. A list of questions to write about folds open under the letter.
 
-**Delivers on the day.** A letter arrives at 9:00 in your time zone on the date you chose. If your mail server refuses it, Someday shows the error and keeps retrying, up to once a day, for as long as it takes.
+**Looks how you set it.** The Settings page picks a light, dark or system theme, a serif, sans or monospace typeface, the text size and an accent colour, and takes your own CSS. It also sets the greeting, the subject, the default delivery time and the questions. Pages use the fonts already on your device and load nothing from other sites.
+
+**Delivers on the day.** A letter arrives at 9:00 in your time zone on the date you chose, or at 9:00 UTC if JavaScript is off when you write it. If your mail server refuses it, Someday shows the error and keeps retrying, up to once a day, for as long as it takes.
 
 **Only you can sign in.** The site is public, but sign-in is a one-time link emailed to the owner's address. Any other address gets no email.
 
@@ -36,7 +38,7 @@ Write a letter, pick a date, and it arrives in your inbox on that day, in a mont
 
 ## Getting started
 
-You do this once. After that there is nothing to run or renew.
+You do this once. After that there is nothing to run, and nothing to renew unless your mail password changes.
 
 You need:
 
@@ -58,7 +60,7 @@ You need:
    | `SMTP_PASSWORD` | the app password from step 1, without spaces | `abcdefghijklmnop` |
 
 4. **Deploy.** Cloudflare copies the code into your GitHub account, builds it and gives you an address ending in `workers.dev`.
-5. **Sign in.** Open that address, enter your email and click the link that arrives. The link arriving shows your mail settings work.
+5. **Sign in.** Open that address, enter your email and click the link that arrives. The link arriving shows your mail settings work. **Send a test email** on the Settings page checks them again later.
 6. **Write your first letter.**
 
 Other mail providers: iCloud is `smtp.mail.me.com:587` and Fastmail is `smtp.fastmail.com`. A host with no port uses 465 with TLS; add `:587` for servers that use STARTTLS.
@@ -67,7 +69,9 @@ If something goes wrong, [Troubleshooting](docs/operations.md#troubleshooting) l
 
 ## Your data
 
-Everything lives in your Cloudflare account, in one Durable Object: the letters, the sign-in tokens and the encryption key. Your SMTP server sees each letter when it is sent. Nothing else leaves your account.
+Everything lives in your Cloudflare account, in one Durable Object: the letters, the sign-in tokens, your settings and the encryption key. Your SMTP server sees each letter when it is sent. Nothing else leaves your account.
+
+**Download every letter** on the Settings page saves all letters, sealed ones included, as one JSON file.
 
 ## Update
 
