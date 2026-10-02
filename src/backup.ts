@@ -162,7 +162,7 @@ function readLetter(v: unknown): StoredLetter | null {
 	const deliverAt = seconds(deliver);
 	const sentAt = delivered === null ? null : seconds(delivered);
 	if (createdAt === null || deliverAt === null || (delivered !== null && sentAt === null)) return null;
-	return { id, subject, body, tz: safeTimeZone(typeof timeZone === "string" ? timeZone : "UTC"), createdAt, deliverAt, sentAt };
+	return { id, subject, body: body.replace(/\r\n/g, "\n"), tz: safeTimeZone(typeof timeZone === "string" ? timeZone : "UTC"), createdAt, deliverAt, sentAt };
 }
 
 /** Unix seconds from an ISO 8601 date, or null when it is not one. */
