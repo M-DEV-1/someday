@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { Backups } from "./backup";
+import { Backups, type Restore } from "./backup";
 import { Cipher } from "./cipher";
 import { deliverDue } from "./delivery";
 import type { Env } from "./env";
@@ -64,6 +64,10 @@ export class Store extends DurableObject<Env> {
 	/** The settings and every letter including sealed bodies, for the owner's backup. */
 	backup() {
 		return this.backups.build();
+	}
+
+	restore(r: Restore) {
+		return this.backups.restore(r);
 	}
 
 	readLetter(id: string) {

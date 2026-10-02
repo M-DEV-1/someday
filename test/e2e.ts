@@ -28,6 +28,13 @@ const text = async (path: string) => (await get(path)).text();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const inSeconds = (s: number) => String(Math.floor(Date.now() / 1000) + s);
 
+/** Uploads a backup file to the restore form. */
+function restore(json: string) {
+	const form = new FormData();
+	form.append("file", new Blob([json], { type: "application/json" }), "backup.json");
+	return fetch(`${BASE}/restore`, { method: "POST", body: form, headers: { Cookie: cookie }, redirect: "manual" });
+}
+
 /** The value of a response header; fails the test when it is missing. */
 function header(res: Response, name: string): string {
 	const value = res.headers.get(name);
@@ -184,7 +191,8 @@ try {
 	// The backup holds the settings and every letter with its body, sealed ones included.
 	const download = await get("/backup");
 	assert.match(header(download, "content-disposition"), /attachment; filename="someday-backup-\d{4}-\d{2}-\d{2}\.json"/);
-	const backup = readBackup(await download.text());
+	const backupJson = await download.text();
+	const backup = readBackup(backupJson);
 	assert.equal(backup.settings.theme, "dark");
 	assert.equal(backup.settings.backup, false, "an unticked checkbox turns the backup email off");
 	assert.deepEqual(backup.letters.map((l) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
@@ -193,6 +201,18 @@ try {
 	// Deleting, and signing out everywhere.
 	assert.equal((await post("/letters/delete", { id: failingId })).status, 303);
 	assert.doesNotMatch(await text("/letters"), /Will fail/);
+
+	// Restoring the backup brings back the deleted letter and the settings; restoring it again adds nothing.
+	assert.equal((await post("/settings", { theme: "light" })).status, 303);
+	const restored = await restore(backupJson);
+	assert.equal(restored.status, 303);
+	assert.match(await text(header(restored, "location")), /Restored the settings and 1 letter\. 2 were already here\./);
+	assert.match(await text("/letters"), /Will fail/);
+	assert.match(await text("/"), /data-theme="dark"/);
+	assert.equal((await get(`/letters/${failingId}`)).status, 303, "a restored sealed letter stays sealed");
+	assert.match(await text(`/letters/${soonId}`), /Dear me,\nstill here\?/);
+	assert.match(await text(header(await restore(backupJson), "location")), /Restored the settings and 0 letters\. 3 were already here\./);
+	assert.equal((await restore("{}")).status, 400);
 	const out = await post("/signout-all", {});
 	assert.match(header(out, "set-cookie"), /Max-Age=0/);
 	assert.equal((await get("/letters")).status, 303, "the old session no longer works");

@@ -2,7 +2,7 @@ import type { Env } from "./env";
 import { type Ctx, html, newNonce, type OwnerCtx, redirect, sessionCookie } from "./http";
 import { signInPage } from "./pages/signin";
 import { confirmLink, redeemLink, signIn, signOut, signOutEverywhere } from "./routes/auth";
-import { downloadBackup } from "./routes/backup";
+import { downloadBackup, restoreBackup } from "./routes/backup";
 import { createLetter, deleteLetter, listLetters, readLetter, writeForm } from "./routes/letters";
 import { saveSettings, sendTest, settingsForm } from "./routes/settings";
 import { DEFAULTS } from "./settings";
@@ -30,6 +30,7 @@ const ROUTES: Route[] = [
 	["POST", /^\/settings$/, saveSettings, true],
 	["POST", /^\/settings\/test$/, sendTest, true],
 	["GET", /^\/backup$/, downloadBackup, true],
+	["POST", /^\/restore$/, restoreBackup, true],
 ];
 
 export default {

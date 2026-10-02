@@ -6,7 +6,14 @@ import { readSettings } from "../settings";
 
 export async function settingsForm(c: OwnerCtx): Promise<Response> {
 	const q = c.url.searchParams;
-	const notice = q.has("saved") ? "Saved." : q.has("tested") ? `Test email sent to ${c.env.OWNER_EMAIL.trim()}.` : "";
+	const restored = Number(q.get("restored"));
+	const notice = q.has("saved")
+		? "Saved."
+		: q.has("tested")
+			? `Test email sent to ${c.env.OWNER_EMAIL.trim()}.`
+			: q.has("restored")
+				? `Restored the settings and ${restored} ${restored === 1 ? "letter" : "letters"}. ${Number(q.get("skipped"))} were already here.`
+				: "";
 	return html(c, settingsPage(c.view, c.view.settings, c.env.OWNER_EMAIL, { notice }));
 }
 

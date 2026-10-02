@@ -1,8 +1,8 @@
 import { configProblems, type Env, smtpConfig } from "./env";
-import type { Letter, Letters } from "./letters";
+import { type Letter, type Letters, MAX_BODY, MAX_SUBJECT, type StoredLetter } from "./letters";
 import { errorText, type Mail, sendOne } from "./mail";
-import type { Settings, SettingsStore } from "./settings";
-import { DAY, now } from "./time";
+import { checkSettings, type Settings, type SettingsStore } from "./settings";
+import { DAY, now, safeTimeZone } from "./time";
 
 const EVERY = 30 * DAY;
 
@@ -13,6 +13,12 @@ export interface Backup {
 	exportedAt: string;
 	settings: Settings;
 	letters: BackupLetter[];
+}
+
+/** What a checked backup file restores. */
+export interface Restore {
+	settings: Settings;
+	letters: StoredLetter[];
 }
 
 export interface BackupLetter {
@@ -57,6 +63,14 @@ export class Backups {
 		}
 	}
 
+	/** Replaces the settings with the backup's and adds its letters. A letter whose ID is already here is skipped, so restoring the same file twice adds nothing. */
+	async restore(r: Restore): Promise<{ added: number; skipped: number }> {
+		this.settings.save(r.settings);
+		let added = 0;
+		for (const letter of r.letters) if (await this.letters.insert(letter)) added++;
+		return { added, skipped: r.letters.length - added };
+	}
+
 	private scheduleNext(at: number): void {
 		this.sql.exec("INSERT OR REPLACE INTO backup_schedule (id, next_at) VALUES (1, ?)", at);
 	}
@@ -79,6 +93,49 @@ function toBackupLetter(l: Letter): BackupLetter {
 		deliver: iso(l.deliverAt),
 		delivered: l.sentAt === null ? null : iso(l.sentAt),
 	};
+}
+
+/**
+ * Checks an uploaded backup file. Input: the parsed JSON. Output: what to restore, or an error that says what is wrong.
+ * Letters are held to the write form's limits, and a sealed letter whose date has passed is restored as due, so the next delivery pass sends it.
+ */
+export function readBackup(raw: unknown): { restore: Restore } | { error: string } {
+	if (!isObject(raw) || raw["format"] !== "someday-backup") return { error: "That file is not a Someday backup." };
+	if (raw["version"] !== 1) return { error: "That backup was made by a newer Someday. Update this one, then restore." };
+	const list = raw["letters"];
+	if (!Array.isArray(list)) return { error: "That backup has no list of letters." };
+	const letters: StoredLetter[] = [];
+	for (const [i, item] of list.entries()) {
+		const letter = readLetter(item);
+		if (!letter) return { error: `Letter ${i + 1} in the backup is damaged, so nothing was restored.` };
+		letters.push(letter);
+	}
+	const { settings, error } = checkSettings(isObject(raw["settings"]) ? raw["settings"] : {});
+	if (error) return { error: `The settings in the backup are damaged: ${error}` };
+	return { restore: { settings, letters } };
+}
+
+function readLetter(v: unknown): StoredLetter | null {
+	if (!isObject(v)) return null;
+	const { id, subject, body, timeZone, written, deliver, delivered } = v;
+	if (typeof id !== "string" || !/^[0-9A-Z]{26}$/.test(id)) return null;
+	if (typeof subject !== "string" || !subject || subject.length > MAX_SUBJECT) return null;
+	if (typeof body !== "string" || body.length > MAX_BODY) return null;
+	const createdAt = seconds(written);
+	const deliverAt = seconds(deliver);
+	const sentAt = delivered === null ? null : seconds(delivered);
+	if (createdAt === null || deliverAt === null || (delivered !== null && sentAt === null)) return null;
+	return { id, subject, body, tz: safeTimeZone(typeof timeZone === "string" ? timeZone : "UTC"), createdAt, deliverAt, sentAt };
+}
+
+/** Unix seconds from an ISO 8601 date, or null when it is not one. */
+function seconds(v: unknown): number | null {
+	const ms = typeof v === "string" ? Date.parse(v) : Number.NaN;
+	return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+}
+
+function isObject(v: unknown): v is Record<string, unknown> {
+	return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 function backupMail(backup: Backup, to: string): Mail {
