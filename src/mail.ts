@@ -52,6 +52,16 @@ export async function openSmtp(cfg: SmtpConfig) {
 	};
 }
 
+/** Opens a session, sends one message and closes it. */
+export async function sendOne(cfg: SmtpConfig, mail: Mail): Promise<void> {
+	const smtp = await openSmtp(cfg);
+	try {
+		await smtp.send(mail);
+	} finally {
+		await smtp.close();
+	}
+}
+
 /** Wraps a socket with line-based SMTP reads and writes. A reply that takes longer than 20 seconds throws. */
 function wrap(socket: Socket) {
 	const reader = socket.readable.getReader();
