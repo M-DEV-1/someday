@@ -6,14 +6,14 @@ import { confirmPage, signInPage } from "../pages/signin";
 /** Emails a sign-in link when the address is the owner's. Any other address gets the same check-your-inbox page and no email. */
 export async function signIn(c: Ctx): Promise<Response> {
 	const problems = configProblems(c.env);
-	if (problems.length) return html(signInPage({ error: `This Someday is not set up yet. ${problems.join(" ")} Fix it in the Worker's Variables and Secrets.` }), 503);
+	if (problems.length) return html(c, signInPage(c.view, { error: `This Someday is not set up yet. ${problems.join(" ")} Fix it in the Worker's Variables and Secrets.` }), 503);
 
 	const email = field(await c.req.formData(), "email");
-	if (!isOwner(c.env, email)) return html(signInPage({ sent: true }));
+	if (!isOwner(c.env, email)) return html(c, signInPage(c.view, { sent: true }));
 
 	// Over the limit looks the same as a stranger's address, so the limit does not confirm which address is the owner's.
 	const link = await c.store.createLink();
-	if (!link) return html(signInPage({ sent: true }));
+	if (!link) return html(c, signInPage(c.view, { sent: true }));
 
 	try {
 		await sendOne(smtpConfig(c.env), {
@@ -23,18 +23,18 @@ export async function signIn(c: Ctx): Promise<Response> {
 		});
 	} catch (e) {
 		await c.store.discardLink(link);
-		return html(signInPage({ error: `The sign-in email could not be sent. ${(e as Error).message}` }), 502);
+		return html(c, signInPage(c.view, { error: `The sign-in email could not be sent. ${(e as Error).message}` }), 502);
 	}
-	return html(signInPage({ sent: true }));
+	return html(c, signInPage(c.view, { sent: true }));
 }
 
 export async function confirmLink(c: Ctx): Promise<Response> {
-	return html(confirmPage(c.url.searchParams.get("t") ?? ""));
+	return html(c, confirmPage(c.view, c.url.searchParams.get("t") ?? ""));
 }
 
 export async function redeemLink(c: Ctx): Promise<Response> {
 	const session = await c.store.redeemLink(field(await c.req.formData(), "t"));
-	if (!session) return html(signInPage({ error: "That sign-in link has expired or was already used. Ask for a new one." }), 401);
+	if (!session) return html(c, signInPage(c.view, { error: "That sign-in link has expired or was already used. Ask for a new one." }), 401);
 	return setSession(redirect("/"), session);
 }
 

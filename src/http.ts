@@ -9,21 +9,37 @@ export interface Ctx {
 	store: DurableObjectStub<Store>;
 	session: string | null;
 	params: string[];
+	view: View;
+}
+
+/** What every page needs to render: the nonce that lets its one style and script element run, and whether the owner is signed in. */
+export interface View {
+	nonce: string;
+	signedIn: boolean;
 }
 
 const COOKIE = "someday";
 // Browsers cap cookie lifetime at 400 days, the same as the session.
 const COOKIE_MAX_AGE = 400 * 86400;
 
-const HTML_HEADERS = {
-	"Content-Type": "text/html; charset=utf-8",
-	"Cache-Control": "no-store",
-	"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
-	"Referrer-Policy": "no-referrer",
-};
+/** A page response. Only style and script elements carrying this request's nonce run, so injected markup cannot run code. */
+export function html(c: { view: View }, body: string, status = 200): Response {
+	const n = c.view.nonce;
+	return new Response(body, {
+		status,
+		headers: {
+			"Content-Type": "text/html; charset=utf-8",
+			"Cache-Control": "no-store",
+			"Content-Security-Policy": `default-src 'none'; style-src 'nonce-${n}'; script-src 'nonce-${n}'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`,
+			"Referrer-Policy": "no-referrer",
+			"X-Content-Type-Options": "nosniff",
+		},
+	});
+}
 
-export function html(body: string, status = 200): Response {
-	return new Response(body, { status, headers: HTML_HEADERS });
+/** A random value for one response's Content-Security-Policy. */
+export function newNonce(): string {
+	return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
 }
 
 /** A 303 redirect, so the browser follows a form POST with a GET. */

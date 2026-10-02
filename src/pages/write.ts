@@ -1,3 +1,4 @@
+import type { View } from "../http";
 import { DELIVERY_CHOICES } from "../settings";
 import { esc, layout } from "./layout";
 
@@ -31,12 +32,13 @@ export function newDraft(today: string): Draft {
 }
 
 /** The write form: the letter on the left, delivery options on the right. `to` is the owner's address the letter will go to. */
-export function writePage(to: string, draft: Draft, error = ""): string {
+export function writePage(view: View, to: string, draft: Draft, error = ""): string {
 	const chips = DELIVERY_CHOICES.map(
 		([months, label]) =>
 			`<input type="radio" name="in" id="in${months}" value="${months}"${draft.months === months ? " checked" : ""}><label for="in${months}">${label}</label>`,
 	).join("");
 	return layout(
+		view,
 		`<h1>Write a letter to your future self</h1>
 <p class="lede">Write it. Pick a date. Send it. Someday keeps it sealed until then.</p>
 <form class="write" method="post" action="/letters" id="write">
@@ -58,7 +60,7 @@ export function writePage(to: string, draft: Draft, error = ""): string {
 		<button class="big">Send to the future</button>
 	</aside>
 </form>
-<script>
+<script nonce="${view.nonce}">
 const PROMPTS = ${JSON.stringify(PROMPTS)};
 const f = document.getElementById("write");
 const when = document.getElementById("when");
@@ -96,6 +98,5 @@ document.getElementById("focus").addEventListener("click", (e) => {
 });
 if (f.date.value) show(); else fromChoice();
 </script>`,
-		true,
 	);
 }

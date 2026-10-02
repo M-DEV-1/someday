@@ -41,6 +41,9 @@ try {
 
 	// Signed out: only the sign-in page, and a stranger's address gets no mail.
 	assert.equal((await get("/wp-login.php")).status, 404);
+	const csp = (await get("/")).headers.get("content-security-policy");
+	assert.match(csp, /script-src 'nonce-[^']+'/);
+	assert.doesNotMatch(csp, /unsafe-inline/);
 	assert.match(await text("/"), /Email me a sign-in link/);
 	assert.equal((await get("/letters")).status, 303);
 	assert.equal((await fetch(BASE + "/letters", { headers: { Cookie: "someday=junk" }, redirect: "manual" })).status, 303);

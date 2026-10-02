@@ -9,23 +9,23 @@ const MAX_YEARS_AHEAD = 100;
 
 export async function writeForm(c: Ctx): Promise<Response> {
 	const today = new Date().toLocaleDateString("en-US", { dateStyle: "medium" });
-	return html(writePage(c.env.OWNER_EMAIL, newDraft(today)));
+	return html(c, writePage(c.view, c.env.OWNER_EMAIL, newDraft(today)));
 }
 
 export async function createLetter(c: Ctx): Promise<Response> {
 	const { draft, input, error } = readDraft(await c.req.formData());
-	if (!input) return html(writePage(c.env.OWNER_EMAIL, draft, error), 400);
+	if (!input) return html(c, writePage(c.view, c.env.OWNER_EMAIL, draft, error), 400);
 	const id = await c.store.addLetter(input);
 	return redirect(`/letters?sent=${id}`);
 }
 
 export async function listLetters(c: Ctx): Promise<Response> {
-	return html(lettersPage(await c.store.listLetters(), c.url.searchParams.get("sent") ?? ""));
+	return html(c, lettersPage(c.view, await c.store.listLetters(), c.url.searchParams.get("sent") ?? ""));
 }
 
 export async function readLetter(c: Ctx): Promise<Response> {
 	const letter = await c.store.readLetter(c.params[0]);
-	return letter ? html(letterPage(letter)) : redirect("/letters");
+	return letter ? html(c, letterPage(c.view, letter)) : redirect("/letters");
 }
 
 export async function deleteLetter(c: Ctx): Promise<Response> {
