@@ -49,6 +49,18 @@ function mail(i: number): Mail {
 	return m;
 }
 
+/** The parts of a backup file the test checks. */
+interface Backup {
+	settings: { theme: string };
+	letters: { id: string; subject: string; body: string; delivered: string | null }[];
+}
+
+function readBackup(json: string): Backup {
+	const backup = JSON.parse(json);
+	assert.equal(backup.format, "someday-backup");
+	return backup;
+}
+
 /** Triggers the cron handler and waits until `done()` holds, since the handler finishes in the background. */
 async function runCron(done: () => boolean | Promise<boolean>) {
 	await get("/__scheduled?cron=*/5+*+*+*+*");
@@ -160,13 +172,13 @@ try {
 	assert.match(await text(header(tested, "location")), /Test email sent to me@example\.com\./);
 	assert.equal(mail(inboxBefore).subject, "Someday test email");
 
-	// The export holds every letter with its body, sealed ones included.
-	const exported = await get("/export");
-	assert.match(header(exported, "content-disposition"), /attachment; filename="someday-letters-/);
-	const letters: unknown = await exported.json();
-	assert.ok(Array.isArray(letters));
-	assert.deepEqual(letters.map((l: { subject: string }) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
-	assert.equal(letters.find((l: { subject: string }) => l.subject === "In a year")?.body, "Hi");
+	// The backup holds the settings and every letter with its body, sealed ones included.
+	const download = await get("/backup");
+	assert.match(header(download, "content-disposition"), /attachment; filename="someday-backup-\d{4}-\d{2}-\d{2}\.json"/);
+	const backup = readBackup(await download.text());
+	assert.equal(backup.settings.theme, "dark");
+	assert.deepEqual(backup.letters.map((l) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
+	assert.equal(backup.letters.find((l) => l.subject === "In a year")?.body, "Hi");
 
 	// Deleting, and signing out everywhere.
 	assert.equal((await post("/letters/delete", { id: failingId })).status, 303);

@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { Backups } from "./backup";
 import { Cipher } from "./cipher";
 import { deliverDue } from "./delivery";
 import type { Env } from "./env";
@@ -11,6 +12,7 @@ export class Store extends DurableObject<Env> {
 	private sessions: Sessions;
 	private letters: Letters;
 	private settings: SettingsStore;
+	private backups: Backups;
 	private delivering: Promise<number> | null = null;
 
 	constructor(ctx: DurableObjectState, env: Env) {
@@ -19,6 +21,7 @@ export class Store extends DurableObject<Env> {
 		this.sessions = new Sessions(sql);
 		this.letters = new Letters(sql, new Cipher(sql));
 		this.settings = new SettingsStore(sql);
+		this.backups = new Backups(this.letters, this.settings);
 	}
 
 	createLink() {
@@ -58,9 +61,9 @@ export class Store extends DurableObject<Env> {
 		return this.letters.list();
 	}
 
-	/** Every letter including sealed bodies, for the owner's export. */
-	exportLetters() {
-		return this.letters.all();
+	/** The settings and every letter including sealed bodies, for the owner's backup. */
+	backup() {
+		return this.backups.build();
 	}
 
 	readLetter(id: string) {
