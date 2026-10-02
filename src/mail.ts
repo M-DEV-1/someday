@@ -1,7 +1,7 @@
 import { connect } from "cloudflare:sockets";
 
 export interface SmtpConfig {
-	/** `host` or `host:port`. The default port is 465, and every port uses TLS from the start. */
+	/** `host` or `host:port`. Port 465 (the default) uses TLS from the start; any other port upgrades with STARTTLS. */
 	host: string;
 	user: string;
 	password: string;
@@ -21,11 +21,18 @@ export async function openSmtp(cfg: SmtpConfig) {
 	const [hostname, portText] = cfg.host.trim().split(":");
 	const port = Number(portText || 465);
 	const local = hostname === "localhost" || hostname === "127.0.0.1";
-	let socket = connect({ hostname, port }, { secureTransport: local ? "off" : "on", allowHalfOpen: false });
+	let socket = connect({ hostname, port }, { secureTransport: port === 465 ? "on" : local ? "off" : "starttls", allowHalfOpen: false });
 	let io = wrap(socket);
 	try {
 		await io.expect(220);
 		await io.cmd("EHLO someday", 250);
+		if (port !== 465 && !local) {
+			await io.cmd("STARTTLS", 220);
+			io.release();
+			socket = socket.startTls();
+			io = wrap(socket);
+			await io.cmd("EHLO someday", 250);
+		}
 		await io.cmd(`AUTH PLAIN ${b64(`\0${cfg.user}\0${cfg.password}`)}`, 235);
 	} catch (e) {
 		await socket.close().catch(() => {});
