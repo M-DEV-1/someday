@@ -48,7 +48,8 @@ textarea { width: 100%; border: 0; padding: 0; resize: vertical; min-height: 60v
 .fields { display: grid; grid-template-columns: 10em 1fr; gap: .75em 1em; align-items: baseline; margin-bottom: 1.5em; }
 .fields textarea { min-height: 8em; border: 1px solid var(--line); padding: .4em; }
 @media (max-width: 480px) {
-	.letters li { grid-template-columns: 1fr auto; }
+	header { gap: 1em; }
+	.letters li { grid-template-columns: 1fr auto; row-gap: 0; }
 	.letters time { grid-column: 1 / -1; }
 	.letters li > .bad { grid-column: 1 / -1; }
 	.fields { grid-template-columns: 1fr; }
