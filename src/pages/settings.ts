@@ -31,7 +31,8 @@ export function settingsPage(view: View, settings: Settings, to: string, { notic
 <p><button class="primary">Save</button></p>
 </form>
 <h1>Account</h1>
-<form method="post" action="/settings/test"><button>Send a test email</button> <span class="small">to ${esc(to)}</span></form>`,
+<form method="post" action="/settings/test"><button>Send a test email</button> <span class="small">to ${esc(to)}</span></form>
+<p><a href="/export">Download every letter</a> <span class="small">as JSON. Sealed letters are included in plain text, so keep the file somewhere private.</span></p>`,
 		{ customCss: false },
 	);
 }

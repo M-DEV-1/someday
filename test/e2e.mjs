@@ -124,6 +124,13 @@ try {
 	assert.match(await text(tested.headers.get("location")), /Test email sent to me@example\.com\./);
 	assert.equal(smtp.inbox[inboxBefore].subject, "Someday test email");
 
+	// The export holds every letter with its body, sealed ones included.
+	const exported = await get("/export");
+	assert.match(exported.headers.get("content-disposition"), /attachment; filename="someday-letters-/);
+	const letters = await exported.json();
+	assert.deepEqual(letters.map((l) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
+	assert.equal(letters.find((l) => l.subject === "In a year").body, "Hi");
+
 	// Deleting and signing out.
 	assert.equal((await post("/letters/delete", { id: failingId })).status, 303);
 	assert.doesNotMatch(await text("/letters"), /Will fail/);

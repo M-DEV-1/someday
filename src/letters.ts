@@ -68,12 +68,16 @@ export class Letters {
 		return id;
 	}
 
+	/** Every letter with its body, soonest delivery first. */
+	async all(): Promise<Letter[]> {
+		// ponytail: decrypts every row on each call, add paging if an owner ever keeps thousands of letters
+		const rows = this.sql.exec<Row>("SELECT * FROM letters ORDER BY deliver_at").toArray();
+		return Promise.all(rows.map((r) => this.unseal(r)));
+	}
+
 	/** Every letter, soonest delivery first, without bodies. */
 	async list(): Promise<LetterSummary[]> {
-		// ponytail: decrypts every row on each listing, add paging if an owner ever keeps thousands of letters
-		const rows = this.sql.exec<Row>("SELECT * FROM letters ORDER BY deliver_at").toArray();
-		const letters = await Promise.all(rows.map((r) => this.unseal(r)));
-		return letters.map(({ body: _, ...summary }) => summary);
+		return (await this.all()).map(({ body: _, ...summary }) => summary);
 	}
 
 	/** Returns a letter only once it has been delivered; upcoming letters stay sealed. */

@@ -54,6 +54,11 @@ export class Store extends DurableObject<Env> {
 		return this.letters.list();
 	}
 
+	/** Every letter including sealed bodies, for the owner's export. */
+	exportLetters() {
+		return this.letters.all();
+	}
+
 	readLetter(id: string) {
 		return this.letters.delivered(id);
 	}
