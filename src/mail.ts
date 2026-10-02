@@ -1,3 +1,13 @@
+import { connect } from "cloudflare:sockets";
+
+export interface SmtpConfig {
+	/** `host` or `host:port`. The default port is 465, and every port uses TLS from the start. */
+	host: string;
+	user: string;
+	password: string;
+	from: string;
+}
+
 export interface Mail {
 	to: string;
 	subject: string;
@@ -5,6 +15,35 @@ export interface Mail {
 }
 
 const REPLY_TIMEOUT_MS = 20_000;
+
+/** Opens an authenticated SMTP session. Plaintext is used only for localhost, which deployed Workers cannot reach, so it only applies to local tests. */
+export async function openSmtp(cfg: SmtpConfig) {
+	const [hostname, portText] = cfg.host.trim().split(":");
+	const port = Number(portText || 465);
+	const local = hostname === "localhost" || hostname === "127.0.0.1";
+	let socket = connect({ hostname, port }, { secureTransport: local ? "off" : "on", allowHalfOpen: false });
+	let io = wrap(socket);
+	try {
+		await io.expect(220);
+		await io.cmd("EHLO someday", 250);
+		await io.cmd(`AUTH PLAIN ${b64(`\0${cfg.user}\0${cfg.password}`)}`, 235);
+	} catch (e) {
+		await socket.close().catch(() => {});
+		throw e;
+	}
+	return {
+		async send(mail: Mail): Promise<void> {
+			await io.cmd(`MAIL FROM:<${cfg.from}>`, 250);
+			await io.cmd(`RCPT TO:<${mail.to}>`, 250, 251);
+			await io.cmd("DATA", 354);
+			await io.cmd(`${message(cfg.from, mail)}\r\n.`, 250);
+		},
+		async close(): Promise<void> {
+			await io.cmd("QUIT", 221).catch(() => {});
+			await socket.close().catch(() => {});
+		},
+	};
+}
 
 /** Wraps a socket with line-based SMTP reads and writes. A reply that takes longer than 20 seconds throws. */
 function wrap(socket: Socket) {
