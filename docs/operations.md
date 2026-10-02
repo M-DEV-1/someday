@@ -71,11 +71,12 @@ npm run dev
 | `npm test` | starts `wrangler dev` on fresh storage against a fake SMTP server and walks sign-in, writing, delivery, the backup email, a failed delivery, settings, the test email, backup download and restore, and signing out everywhere |
 | `npm run typecheck` | runs TypeScript on the Worker, the browser scripts and the test |
 | `npm run lint` | runs Biome's formatter check and linter |
+| `npm run knip` | lists unused files, exports and dependencies |
 | `npm run deploy` | deploys from your machine with `wrangler deploy` |
 
 `SMTP_HOST=localhost:<port>` sends without TLS. Deployed Workers cannot reach localhost, so this only works in development.
 
-CI runs the type check, Biome, a dry-run bundle and `npm test` on pushes to `main` and on pull requests; see `.github/workflows/ci.yml`. A push from the update action does not start CI, which is why the update action runs the same checks itself.
+CI runs the type check, Biome, knip, a dry-run bundle and `npm test` on pushes to `main` and on pull requests; see `.github/workflows/ci.yml`. A push from the update action does not start CI, which is why the update action runs the same checks itself.
 
 ## Things that can break over years
 
