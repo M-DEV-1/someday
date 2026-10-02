@@ -30,6 +30,8 @@ Write a letter, pick a date, and it arrives in your inbox on that day, in a mont
 
 **Needs no email service.** Letters go out through your own SMTP account, such as Gmail with an app password. There is no Resend, Mailgun or other vendor that could shut down.
 
+**Keeps a copy in your mailbox.** Every 30 days a backup of every letter and your settings arrives by email. If Cloudflare changes its plans, deploy Someday in another account and restore that file.
+
 <div align="center">
 
 **[Get started](#getting-started)** · **[Architecture](docs/architecture.md)** · **[Operations](docs/operations.md)**
@@ -71,7 +73,7 @@ If something goes wrong, [Troubleshooting](docs/operations.md#troubleshooting) l
 
 Everything lives in your Cloudflare account, in one Durable Object: the letters, the sign-in tokens, your settings and the encryption key. Your SMTP server sees each letter when it is sent. Nothing else leaves your account.
 
-**Download every letter** on the Settings page saves all letters, sealed ones included, as one JSON file.
+Every 30 days Someday emails you a backup: one JSON file with your settings and every letter, sealed ones included. **Download a backup** on the Settings page gets one at any time. **Restore** on the Settings page of a new Someday, in any Cloudflare account, brings everything back; see [Move to a new account](docs/operations.md#move-to-a-new-account).
 
 ## Update
 
