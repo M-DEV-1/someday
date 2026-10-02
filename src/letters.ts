@@ -120,7 +120,8 @@ export class Letters {
 	private async unseal(r: Row): Promise<Letter> {
 		const letter = { id: r.id, subject: "(could not be decrypted)", body: "", tz: r.tz, createdAt: r.created_at, deliverAt: r.deliver_at, sentAt: r.sent_at, attempts: r.attempts, lastError: r.last_error, unreadable: true };
 		try {
-			const { subject, body } = JSON.parse(await this.cipher.open(r.sealed));
+			const { subject, body }: { subject?: unknown; body?: unknown } = JSON.parse(await this.cipher.open(r.sealed));
+			if (typeof subject !== "string" || typeof body !== "string") return letter;
 			return { ...letter, subject, body, unreadable: false };
 		} catch {
 			return letter;
