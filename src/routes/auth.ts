@@ -1,5 +1,5 @@
 import { configProblems, isOwner, smtpConfig } from "../env";
-import { field, html, redirect, setSession, type Ctx } from "../http";
+import { field, html, redirect, setSession, type Ctx, type OwnerCtx } from "../http";
 import { sendOne } from "../mail";
 import { confirmPage, signInPage } from "../pages/signin";
 
@@ -38,13 +38,13 @@ export async function redeemLink(c: Ctx): Promise<Response> {
 	return setSession(redirect("/"), session);
 }
 
-export async function signOut(c: Ctx): Promise<Response> {
-	await c.store.signOut(c.session!);
+export async function signOut(c: OwnerCtx): Promise<Response> {
+	await c.store.signOut(c.session);
 	return setSession(redirect("/"), null);
 }
 
 /** Ends every session, for a lost or shared device. */
-export async function signOutEverywhere(c: Ctx): Promise<Response> {
+export async function signOutEverywhere(c: OwnerCtx): Promise<Response> {
 	await c.store.signOutEverywhere();
 	return setSession(redirect("/"), null);
 }

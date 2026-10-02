@@ -1,5 +1,5 @@
 import type { Env } from "./env";
-import { html, newNonce, redirect, sessionCookie, type Ctx } from "./http";
+import { html, newNonce, redirect, sessionCookie, type Ctx, type OwnerCtx } from "./http";
 import { signInPage } from "./pages/signin";
 import { DEFAULTS } from "./settings";
 import { confirmLink, redeemLink, signIn, signOut, signOutEverywhere } from "./routes/auth";
@@ -10,11 +10,13 @@ import { Store } from "./store";
 
 export { Store };
 
-type Handler = (c: Ctx) => Promise<Response>;
+type Method = "GET" | "POST";
 
-/** Method, path pattern, handler, and whether the route needs a signed-in session. */
-const ROUTES: [string, RegExp, Handler, boolean][] = [
-	["GET", /^\/$/, (c) => (c.session ? writeForm(c) : Promise.resolve(html(c, signInPage(c.view)))), false],
+/** Method, path pattern, handler, and whether the route needs the owner signed in. A route that does gets a context whose session is always set. */
+type Route = [Method, RegExp, (c: Ctx) => Promise<Response>, false] | [Method, RegExp, (c: OwnerCtx) => Promise<Response>, true];
+
+const ROUTES: Route[] = [
+	["GET", /^\/$/, (c: Ctx) => (c.session ? writeForm({ ...c, session: c.session }) : Promise.resolve(html(c, signInPage(c.view)))), false],
 	["POST", /^\/signin$/, signIn, false],
 	["GET", /^\/auth$/, confirmLink, false],
 	["POST", /^\/auth$/, redeemLink, false],
@@ -33,7 +35,8 @@ const ROUTES: [string, RegExp, Handler, boolean][] = [
 export default {
 	async fetch(req, env) {
 		const url = new URL(req.url);
-		for (const [method, path, handler, needsSession] of ROUTES) {
+		for (const route of ROUTES) {
+			const [method, path] = route;
 			const match = req.method === method && url.pathname.match(path);
 			if (!match) continue;
 
@@ -45,8 +48,10 @@ export default {
 			const cookie = sessionCookie(req);
 			const settings = cookie ? await store.session(cookie) : null;
 			const session = settings ? cookie : null;
-			if (needsSession && !session) return req.method === "GET" ? redirect("/") : new Response("Sign in first", { status: 403 });
-			return handler({ req, env, url, store, session, params: match.slice(1), view: { nonce: newNonce(), signedIn: !!settings, settings: settings ?? DEFAULTS } });
+			const c: Ctx = { req, env, url, store, session, params: match.slice(1), view: { nonce: newNonce(), signedIn: !!settings, settings: settings ?? DEFAULTS } };
+			if (!route[3]) return route[2](c);
+			if (!session) return req.method === "GET" ? redirect("/") : new Response("Sign in first", { status: 403 });
+			return route[2]({ ...c, session });
 		}
 		// Unknown routes return before the Durable Object is touched, so scanner traffic costs nothing.
 		return new Response("Not found", { status: 404 });

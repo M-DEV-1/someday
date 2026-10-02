@@ -13,6 +13,11 @@ export interface Ctx {
 	view: View;
 }
 
+/** The context of a route that needs the owner signed in. */
+export interface OwnerCtx extends Ctx {
+	session: string;
+}
+
 /** What every page needs to render: the nonce that lets its style and script elements run, whether the owner is signed in, and the owner's settings (the defaults when signed out). */
 export interface View {
 	nonce: string;

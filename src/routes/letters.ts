@@ -1,4 +1,4 @@
-import { field, html, redirect, type Ctx } from "../http";
+import { field, html, redirect, type OwnerCtx } from "../http";
 import type { LetterInput } from "../letters";
 import { letterPage, lettersPage } from "../pages/letters";
 import { newDraft, writePage, type Draft } from "../pages/write";
@@ -7,28 +7,28 @@ import { DAY, now, safeTimeZone } from "../time";
 
 const MAX_YEARS_AHEAD = 100;
 
-export async function writeForm(c: Ctx): Promise<Response> {
+export async function writeForm(c: OwnerCtx): Promise<Response> {
 	const today = new Date().toLocaleDateString("en-US", { dateStyle: "medium" });
 	return html(c, writePage(c.view, c.env.OWNER_EMAIL, newDraft(c.view.settings, today), { fresh: true }));
 }
 
-export async function createLetter(c: Ctx): Promise<Response> {
+export async function createLetter(c: OwnerCtx): Promise<Response> {
 	const { draft, input, error } = readDraft(await c.req.formData());
 	if (!input) return html(c, writePage(c.view, c.env.OWNER_EMAIL, draft, { error }), 400);
 	const id = await c.store.addLetter(input);
 	return redirect(`/letters?sent=${id}`);
 }
 
-export async function listLetters(c: Ctx): Promise<Response> {
+export async function listLetters(c: OwnerCtx): Promise<Response> {
 	return html(c, lettersPage(c.view, await c.store.listLetters(), c.url.searchParams.get("sent") ?? ""));
 }
 
-export async function readLetter(c: Ctx): Promise<Response> {
+export async function readLetter(c: OwnerCtx): Promise<Response> {
 	const letter = await c.store.readLetter(c.params[0] ?? "");
 	return letter ? html(c, letterPage(c.view, letter)) : redirect("/letters");
 }
 
-export async function deleteLetter(c: Ctx): Promise<Response> {
+export async function deleteLetter(c: OwnerCtx): Promise<Response> {
 	await c.store.deleteLetter(field(await c.req.formData(), "id"));
 	return redirect("/letters");
 }
