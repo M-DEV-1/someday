@@ -1,3 +1,16 @@
+import type { Env } from "./env";
+import type { Store } from "./store";
+
+/** What a route handler gets: the request, env, the store stub, the session token if signed in, and the path match. */
+export interface Ctx {
+	req: Request;
+	env: Env;
+	url: URL;
+	store: DurableObjectStub<Store>;
+	session: string | null;
+	params: string[];
+}
+
 const COOKIE = "someday";
 // Browsers cap cookie lifetime at 400 days, the same as the session.
 const COOKIE_MAX_AGE = 400 * 86400;
