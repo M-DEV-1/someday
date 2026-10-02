@@ -2,15 +2,34 @@ import { DurableObject } from "cloudflare:workers";
 import { Cipher } from "./cipher";
 import type { Env } from "./env";
 import { Letters, type LetterInput } from "./letters";
+import { Sessions } from "./sessions";
 
 /** The one Durable Object behind an instance. It owns the SQLite database and hands each call from the Worker to the module that owns that table. */
 export class Store extends DurableObject<Env> {
+	private sessions: Sessions;
 	private letters: Letters;
 
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
 		const sql = ctx.storage.sql;
+		this.sessions = new Sessions(sql);
 		this.letters = new Letters(sql, new Cipher(sql));
+	}
+
+	createLink() {
+		return this.sessions.createLink();
+	}
+
+	redeemLink(link: string) {
+		return this.sessions.redeemLink(link);
+	}
+
+	isSignedIn(session: string) {
+		return this.sessions.isValid(session);
+	}
+
+	signOut(session: string) {
+		return this.sessions.end(session);
 	}
 
 	addLetter(input: LetterInput) {
