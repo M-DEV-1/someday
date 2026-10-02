@@ -40,4 +40,6 @@ aside > * + * { margin-top: 20px; }
 body.focus header, body.focus h1, body.focus .lede, body.focus aside { display: none; }
 body.focus .write { grid-template-columns: minmax(0, 1fr); max-width: 760px; margin: 24px auto; }
 body.focus .paper textarea { min-height: 75vh; }
+ul.letters { list-style: none; padding: 0; margin: 0; }
+ul.letters li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 `;

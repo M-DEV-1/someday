@@ -1,5 +1,6 @@
 import { field, html, redirect, type Ctx } from "../http";
 import type { LetterInput } from "../letters";
+import { lettersPage } from "../pages/letters";
 import { DELIVERY_CHOICES, newDraft, writePage, type Draft } from "../pages/write";
 import { DAY, now, safeTimeZone } from "../time";
 
@@ -14,7 +15,11 @@ export async function createLetter(c: Ctx): Promise<Response> {
 	const { draft, input, error } = readDraft(await c.req.formData());
 	if (!input) return html(writePage(c.env.OWNER_EMAIL, draft, error), 400);
 	const id = await c.store.addLetter(input);
-	return redirect(`/?sent=${id}`);
+	return redirect(`/letters?sent=${id}`);
+}
+
+export async function listLetters(c: Ctx): Promise<Response> {
+	return html(lettersPage(await c.store.listLetters(), c.url.searchParams.get("sent") ?? ""));
 }
 
 /**

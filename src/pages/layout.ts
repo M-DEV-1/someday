@@ -10,6 +10,7 @@ export function layout(content: string, signedIn = false): string {
 	const nav = signedIn
 		? [
 				`<a href="/">Write</a>`,
+				`<a href="/letters">My letters</a>`,
 				`<form method="post" action="/signout"><button class="link">Sign out</button></form>`,
 			].join("")
 		: "";
