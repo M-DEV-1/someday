@@ -19,7 +19,7 @@ jobs:
     if: github.repository != 'M-DEV-1/someday'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The Deploy button makes a copy with no shared history, so the new version is copied over the files instead of merged.
       # .github is skipped because the workflow token cannot push changes to workflows, and wrangler.jsonc is kept because the deployer may have renamed the Worker.
       - name: Copy the chosen version over this one
