@@ -1,9 +1,11 @@
-# Type-checks the Worker, bundles it and runs the end-to-end test on every push.
+# Type-checks the Worker, bundles it and runs the end-to-end test on pushes to main and on pull requests.
 name: ci
 
-# Push only: a pull request from a branch of this repository is already covered by the push, and both would run every job twice.
+# Pushes to other branches and tags are skipped, so a deployer's copy does not spend Actions minutes on them.
 on:
   push:
+    branches: [main]
+  pull_request:
 
 jobs:
   test:
