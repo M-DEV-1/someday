@@ -6,28 +6,42 @@ import { formatDate } from "./time";
 /** Letters sent per run. The cron runs every 5 minutes, so this allows 7,200 letters a day. */
 const BATCH = 25;
 
-/** Sends due letters to the owner over one SMTP connection. Output: how many were sent. When a send fails, that letter and the ones after it in the batch are marked failed and retried later with backoff. */
+/**
+ * Sends due letters to the owner over one SMTP connection. Output: how many were sent.
+ * If the connection or login fails, every due letter is marked failed. If the server refuses one letter, only that letter is marked failed and the pass stops; the rest go out on the next pass, so one refused letter cannot hold the others back. Failed letters are retried with backoff.
+ */
 export async function deliverDue(letters: Letters, env: Env): Promise<number> {
-	if (configProblems(env).length) return 0;
 	const due = await letters.due(BATCH);
 	if (!due.length) return 0;
 
-	let sent = 0;
-	let smtp: Awaited<ReturnType<typeof openSmtp>> | undefined;
+	let smtp: Awaited<ReturnType<typeof openSmtp>>;
 	try {
 		smtp = await openSmtp(smtpConfig(env));
+	} catch (e) {
+		for (const letter of due) letters.markFailed(letter.id, message(e));
+		return 0;
+	}
+
+	let sent = 0;
+	try {
 		for (const letter of due) {
-			await smtp.send(letterMail(letter, env.OWNER_EMAIL.trim()));
+			try {
+				await smtp.send(letterMail(letter, env.OWNER_EMAIL.trim()));
+			} catch (e) {
+				letters.markFailed(letter.id, message(e));
+				break;
+			}
 			letters.markSent(letter.id);
 			sent++;
 		}
-	} catch (e) {
-		const error = e instanceof Error ? e.message : String(e);
-		for (const letter of due.slice(sent)) letters.markFailed(letter.id, error);
 	} finally {
-		await smtp?.close();
+		await smtp.close();
 	}
 	return sent;
+}
+
+function message(e: unknown): string {
+	return e instanceof Error ? e.message : String(e);
 }
 
 function letterMail(letter: Letter, to: string): Mail {
