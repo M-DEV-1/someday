@@ -1,30 +1,28 @@
 import type { View } from "../http";
 import { esc, layout } from "./layout";
 
-/** The page a signed-out visitor sees. `sent` replaces the form with a check-your-inbox message. */
+/** The page a signed-out visitor sees. `sent` replaces the form with the line every address gets after submitting. */
 export function signInPage(view: View, { sent = false, error = "" } = {}): string {
-	const form = sent
-		? `<div class="card"><p>Check your inbox. If that is this Someday's owner address, a sign-in link is on its way. It works once, for 15 minutes.</p></div>`
-		: `<form class="card" method="post" action="/signin">
-	<label for="email">This Someday belongs to one person. Enter their email address to get a sign-in link.</label>
-	<input id="email" name="email" type="email" required autocomplete="email">
-	${error ? `<p class="error">${esc(error)}</p>` : ""}
-	<p><button>Email me a sign-in link</button></p>
-</form>`;
-	return layout(view, `<div class="narrow">
-<h1>Write a letter to your future self</h1>
-<p class="lede">Write it. Pick a date. Read it years from now.</p>
-${form}
-</div>`);
+	if (sent) return layout(view, `<p>If that is the owner's address, a sign-in link is on its way. It works once, for 15 minutes.</p>`);
+	return layout(
+		view,
+		`<p>Someday keeps letters to your future self and emails them on the day. Sign in with the owner's address.</p>
+<form class="inline" method="post" action="/signin">
+	<input name="email" type="email" aria-label="Email address" required autocomplete="email">
+	<button>Send link</button>
+</form>
+${error ? `<p class="bad">${esc(error)}</p>` : ""}`,
+	);
 }
 
 /** Shown when the sign-in link is opened. Signing in takes a button press, so mail scanners that open links do not use up the link. */
 export function confirmPage(view: View, link: string): string {
-	return layout(view, `<div class="narrow">
-<h1>Welcome back</h1>
-<form class="card" method="post" action="/auth">
+	return layout(
+		view,
+		`<form method="post" action="/auth">
+	<p>Sign in to Someday.</p>
 	<input type="hidden" name="t" value="${esc(link)}">
-	<button class="big">Sign in to Someday</button>
-</form>
-</div>`);
+	<button class="primary">Sign in</button>
+</form>`,
+	);
 }

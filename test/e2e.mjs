@@ -44,11 +44,11 @@ try {
 	const csp = (await get("/")).headers.get("content-security-policy");
 	assert.match(csp, /script-src 'nonce-[^']+'/);
 	assert.doesNotMatch(csp, /unsafe-inline/);
-	assert.match(await text("/"), /Email me a sign-in link/);
+	assert.match(await text("/"), /Send link/);
 	assert.equal((await get("/letters")).status, 303);
 	assert.equal((await fetch(BASE + "/letters", { headers: { Cookie: "someday=junk" }, redirect: "manual" })).status, 303);
 	assert.equal((await post("/letters", { subject: "x", body: "x", in: "12" })).status, 403);
-	assert.match(await (await post("/signin", { email: "stranger@example.com" })).text(), /Check your inbox/);
+	assert.match(await (await post("/signin", { email: "stranger@example.com" })).text(), /a sign-in link is on its way/);
 	assert.equal(smtp.inbox.length, 0, "a stranger's address gets no mail");
 
 	// The owner gets a one-time link; a second request within a minute looks the same but sends nothing.
@@ -56,7 +56,7 @@ try {
 	assert.equal(smtp.inbox.length, 1);
 	assert.equal(smtp.inbox[0].subject, "Your Someday sign-in link");
 	const link = smtp.inbox[0].text.match(/\/auth\?t=([\w-]+)/)[1];
-	assert.match(await (await post("/signin", { email: OWNER })).text(), /Check your inbox/);
+	assert.match(await (await post("/signin", { email: OWNER })).text(), /a sign-in link is on its way/);
 	assert.equal(smtp.inbox.length, 1);
 
 	// Opening the link only shows a button; pressing it signs in once.
