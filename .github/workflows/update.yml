@@ -1,0 +1,47 @@
+# Installs a newer Someday into a copy made by the Deploy to Cloudflare button. Pushing the result makes Cloudflare redeploy.
+name: update someday
+
+# Run by hand from the Actions tab. It is not scheduled, because a broken update deployed on its own is worse than an old version that works.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag of M-DEV-1/someday to install"
+        required: true
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    # The source repository has nothing to update from.
+    if: github.repository != 'M-DEV-1/someday'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The Deploy button makes a copy with no shared history, so the new version is copied over the files instead of merged.
+      # .github is skipped because the workflow token cannot push changes to workflows, and wrangler.jsonc is kept because the deployer may have renamed the Worker.
+      - name: Copy the chosen version over this one
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          curl -fsSL "https://codeload.github.com/M-DEV-1/someday/tar.gz/$REF" | tar -xz -C "$RUNNER_TEMP"
+          src="$(echo "$RUNNER_TEMP"/someday-*/)"
+          if ! diff -u wrangler.jsonc "$src/wrangler.jsonc"; then
+            echo "::warning::wrangler.jsonc differs from $REF and was kept as it is. Copy any new bindings or migrations from the diff above by hand."
+          fi
+          rsync -a --delete --exclude .git --exclude .github --exclude wrangler.jsonc "$src" ./
+      - name: Commit and push
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Already up to date with $REF."
+            exit 0
+          fi
+          git commit -m "update: someday $REF"
+          git push
