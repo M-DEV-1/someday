@@ -1,12 +1,12 @@
-import { isOwner, missingConfig, smtpConfig } from "../env";
+import { configProblems, isOwner, smtpConfig } from "../env";
 import { field, html, redirect, setSession, type Ctx } from "../http";
 import { sendOne } from "../mail";
 import { confirmPage, signInPage } from "../pages/signin";
 
 /** Emails a sign-in link when the address is the owner's. Any other address gets the same check-your-inbox page and no email. */
 export async function signIn(c: Ctx): Promise<Response> {
-	const missing = missingConfig(c.env);
-	if (missing.length) return html(signInPage({ error: `This Someday is not set up yet. Set ${missing.join(", ")} in the Worker's settings.` }), 503);
+	const problems = configProblems(c.env);
+	if (problems.length) return html(signInPage({ error: `This Someday is not set up yet. ${problems.join(" ")} Fix it in the Worker's Variables and Secrets.` }), 503);
 
 	const email = field(await c.req.formData(), "email");
 	if (!isOwner(c.env, email)) return html(signInPage({ sent: true }));

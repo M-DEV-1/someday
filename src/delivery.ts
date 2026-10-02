@@ -1,4 +1,4 @@
-import { missingConfig, smtpConfig, type Env } from "./env";
+import { configProblems, smtpConfig, type Env } from "./env";
 import type { Letter, Letters } from "./letters";
 import { openSmtp, type Mail } from "./mail";
 import { formatDate } from "./time";
@@ -8,7 +8,7 @@ const BATCH = 25;
 
 /** Sends due letters to the owner over one SMTP connection. Output: how many were sent. When a send fails, that letter and the ones after it in the batch are marked failed and retried later with backoff. */
 export async function deliverDue(letters: Letters, env: Env): Promise<number> {
-	if (missingConfig(env).length) return 0;
+	if (configProblems(env).length) return 0;
 	const due = await letters.due(BATCH);
 	if (!due.length) return 0;
 
