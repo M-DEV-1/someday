@@ -1,6 +1,6 @@
 import { configProblems, smtpConfig, type Env } from "./env";
 import type { Letter, Letters } from "./letters";
-import { openSmtp, type Mail } from "./mail";
+import { errorText, openSmtp, type Mail } from "./mail";
 import { formatDate } from "./time";
 
 /** Letters sent per run. The cron runs every 5 minutes, so this allows 7,200 letters a day. */
@@ -25,7 +25,7 @@ export async function deliverDue(letters: Letters, env: Env): Promise<number> {
 	try {
 		smtp = await openSmtp(smtpConfig(env));
 	} catch (e) {
-		for (const letter of due) letters.markFailed(letter.id, message(e));
+		for (const letter of due) letters.markFailed(letter.id, errorText(e));
 		return 0;
 	}
 
@@ -35,7 +35,7 @@ export async function deliverDue(letters: Letters, env: Env): Promise<number> {
 			try {
 				await smtp.send(letterMail(letter, env.OWNER_EMAIL.trim()));
 			} catch (e) {
-				letters.markFailed(letter.id, message(e));
+				letters.markFailed(letter.id, errorText(e));
 				break;
 			}
 			letters.markSent(letter.id);
@@ -45,10 +45,6 @@ export async function deliverDue(letters: Letters, env: Env): Promise<number> {
 		await smtp.close();
 	}
 	return sent;
-}
-
-function message(e: unknown): string {
-	return e instanceof Error ? e.message : String(e);
 }
 
 function letterMail(letter: Letter, to: string): Mail {

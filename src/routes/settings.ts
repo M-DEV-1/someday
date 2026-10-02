@@ -1,6 +1,6 @@
 import { configProblems, smtpConfig } from "../env";
 import { html, redirect, type OwnerCtx } from "../http";
-import { sendOne } from "../mail";
+import { errorText, sendOne } from "../mail";
 import { settingsPage } from "../pages/settings";
 import { readSettings } from "../settings";
 
@@ -25,7 +25,7 @@ export async function sendTest(c: OwnerCtx): Promise<Response> {
 	try {
 		await sendOne(smtpConfig(c.env), { to: c.env.OWNER_EMAIL.trim(), subject: "Someday test email", text: "This is a test email from your Someday. Letters arrive the same way.\n" });
 	} catch (e) {
-		return fail(`The test email could not be sent. ${(e as Error).message}`);
+		return fail(`The test email could not be sent. ${errorText(e)}`);
 	}
 	return redirect("/settings?tested");
 }

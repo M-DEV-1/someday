@@ -154,3 +154,8 @@ function b64(s: string): string {
 	for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
 	return btoa(bin);
 }
+
+/** The message of a thrown value, which for an SMTP failure is the server's reply. */
+export function errorText(e: unknown): string {
+	return e instanceof Error ? e.message : String(e);
+}

@@ -1,6 +1,6 @@
 import { configProblems, isOwner, smtpConfig } from "../env";
 import { field, html, redirect, setSession, type Ctx, type OwnerCtx } from "../http";
-import { sendOne } from "../mail";
+import { errorText, sendOne } from "../mail";
 import { confirmPage, signInPage } from "../pages/signin";
 
 /** Emails a sign-in link when the address is the owner's. Any other address gets the same check-your-inbox page and no email. */
@@ -23,7 +23,7 @@ export async function signIn(c: Ctx): Promise<Response> {
 		});
 	} catch (e) {
 		await c.store.discardLink(link);
-		return html(c, signInPage(c.view, { error: `The sign-in email could not be sent. ${(e as Error).message}` }), 502);
+		return html(c, signInPage(c.view, { error: `The sign-in email could not be sent. ${errorText(e)}` }), 502);
 	}
 	return html(c, signInPage(c.view, { sent: true }));
 }
