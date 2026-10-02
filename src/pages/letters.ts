@@ -1,25 +1,20 @@
-import type { Letter, LetterSummary } from "../letters";
 import type { View } from "../http";
+import type { Letter, LetterSummary } from "../letters";
 import { formatDate, fromNow } from "../time";
 import { esc, layout } from "./layout";
 
-/** The owner's letters: sealed upcoming ones, then delivered ones. `justSent` is the ID of a letter written a moment ago. */
+/** The owner's letters: sealed ones by arrival date, then delivered ones, newest first. `justSent` is the ID of a letter written a moment ago. */
 export function lettersPage(view: View, letters: LetterSummary[], justSent = ""): string {
-	const upcoming = letters.filter((l) => !l.sentAt);
+	const sealed = letters.filter((l) => !l.sentAt);
 	const delivered = letters.filter((l) => l.sentAt).reverse();
-	const sent = upcoming.find((l) => l.id === justSent);
-	const notice = sent ? `<p class="notice">Sealed and on its way. It arrives on ${formatDate(sent.deliverAt, sent.tz)}, ${fromNow(sent.deliverAt)}.</p>` : "";
-
-	if (!letters.length) {
-		return layout(view, `<h2>My letters</h2><p class="lede">No letters yet. <a href="/">Write your first one.</a></p>`);
-	}
+	const sent = sealed.find((l) => l.id === justSent);
 	return layout(
 		view,
-		`${notice}<h2>My letters</h2>
-<h3>Upcoming (${upcoming.length}) · sealed until they arrive</h3>
-<ul class="letters">${upcoming.map(upcomingRow).join("") || `<li class="muted">Nothing on its way. <a href="/">Write one.</a></li>`}</ul>
-<h3>Delivered (${delivered.length})</h3>
-<ul class="letters">${delivered.map(deliveredRow).join("") || `<li class="muted">None yet.</li>`}</ul>
+		`${sent ? `<p>Sealed. Arrives ${formatDate(sent.deliverAt, sent.tz)}, ${fromNow(sent.deliverAt)}.</p>` : ""}
+<h1>Sealed</h1>
+${list(sealed.map(sealedRow))}
+<h1>Delivered</h1>
+${list(delivered.map(deliveredRow))}
 ${confirmDeletes(view)}`,
 	);
 }
@@ -39,15 +34,24 @@ ${confirmDeletes(view)}`,
 	);
 }
 
-function upcomingRow(l: LetterSummary): string {
-	const state = l.attempts
-		? `<span class="error" title="${esc(l.lastError ?? "")}">Could not send (${l.attempts} ${l.attempts === 1 ? "try" : "tries"}), retrying: ${esc(l.lastError ?? "")}</span>`
-		: `Arrives ${formatDate(l.deliverAt, l.tz)}, ${fromNow(l.deliverAt)}`;
-	return `<li><span>${esc(l.subject)}</span><span class="muted">${state}${deleteForm(l.id)}</span></li>`;
+function list(rows: string[]): string {
+	return rows.length ? `<ul class="letters">${rows.join("")}</ul>` : `<p class="small">None.</p>`;
+}
+
+/** Date, subject and a delete link. A letter that failed to send gets the server's reply on a second line. */
+function sealedRow(l: LetterSummary): string {
+	const failed = l.attempts
+		? `<span class="bad small">Could not send, ${l.attempts} ${l.attempts === 1 ? "try" : "tries"}, retrying: ${esc(l.lastError ?? "")}</span>`
+		: "";
+	return `<li><time>${formatDate(l.deliverAt, l.tz)}</time><span>${esc(l.subject)}</span>${deleteForm(l.id, "delete")}${failed}</li>`;
 }
 
 function deliveredRow(l: LetterSummary): string {
-	return `<li><a href="/letters/${l.id}">${esc(l.subject)}</a><span class="muted">Delivered ${formatDate(l.sentAt!, l.tz)}</span></li>`;
+	return `<li><time>${formatDate(l.sentAt!, l.tz)}</time><a href="/letters/${l.id}">${esc(l.subject)}</a><span></span></li>`;
+}
+
+function deleteForm(id: string, label = "Delete this letter"): string {
+	return `<form class="delete" method="post" action="/letters/delete"><input type="hidden" name="id" value="${esc(id)}"><button class="link small">${label}</button></form>`;
 }
 
 /** Asks before a delete form submits. It is a nonce'd script because the policy blocks inline onsubmit handlers. */
@@ -55,8 +59,4 @@ function confirmDeletes(view: View): string {
 	return `<script nonce="${view.nonce}">
 for (const f of document.querySelectorAll("form.delete")) f.addEventListener("submit", (e) => { if (!confirm("Delete this letter for good?")) e.preventDefault(); });
 </script>`;
-}
-
-function deleteForm(id: string): string {
-	return `<form class="delete" method="post" action="/letters/delete"><input type="hidden" name="id" value="${esc(id)}"><button class="link">Delete</button></form>`;
 }

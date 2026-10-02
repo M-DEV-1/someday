@@ -75,7 +75,7 @@ try {
 	assert.match(await past.text(), /Keep this text[\s\S]*Pick a date in the future/);
 	const yearAway = await post("/letters", { subject: "In a year", body: "Hi", in: "12" });
 	assert.equal(yearAway.status, 303);
-	assert.match(await text(yearAway.headers.get("location")), /Sealed and on its way[\s\S]*in 1 year/);
+	assert.match(await text(yearAway.headers.get("location")), /Sealed\. Arrives .*, in 1 year\./);
 
 	const soon = await post("/letters", { subject: "Héllo <future> ✉", body: "Dear me,\nstill here?", deliver_at: inSeconds(1), tz: "Asia/Kolkata" });
 	const soonId = soon.headers.get("location").split("sent=")[1];
@@ -89,14 +89,14 @@ try {
 	assert.equal(delivered.subject, "Héllo <future> ✉");
 	assert.match(delivered.text, /^Dear me,\nstill here\?\n\n--\nYou wrote this on /);
 	assert.match(await text(`/letters/${soonId}`), /Héllo &#60;future&#62; ✉[\s\S]*Dear me,\nstill here\?/);
-	assert.match(await text("/letters"), /Upcoming \(1\)[\s\S]*Delivered \(1\)/);
+	assert.match(await text("/letters"), /Sealed<\/h1>[\s\S]*In a year[\s\S]*Delivered<\/h1>[\s\S]*Héllo/);
 
 	// A failed send is shown on the letter and retried later instead of being dropped.
 	smtp.rejectAuth = true;
 	const failing = await post("/letters", { subject: "Will fail", body: "x", deliver_at: inSeconds(1), tz: "UTC" });
 	const failingId = failing.headers.get("location").split("sent=")[1];
 	await sleep(1500);
-	await runCron(async () => /Could not send \(1 try\)/.test(await text("/letters")));
+	await runCron(async () => /Could not send, 1 try, retrying/.test(await text("/letters")));
 	assert.match(await text("/letters"), /535 5\.7\.8/);
 	assert.equal(smtp.inbox.length, 2);
 
