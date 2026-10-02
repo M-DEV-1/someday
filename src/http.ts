@@ -31,3 +31,9 @@ export function sessionCookie(req: Request): string | null {
 	}
 	return null;
 }
+
+/** Reads a form field as a string, empty when absent. */
+export function field(form: FormData, name: string): string {
+	const v = form.get(name);
+	return typeof v === "string" ? v : "";
+}
