@@ -34,30 +34,41 @@ const ROUTES: Route[] = [
 
 export default {
 	async fetch(req, env) {
-		const url = new URL(req.url);
-		for (const route of ROUTES) {
-			const [method, path] = route;
-			const match = req.method === method && url.pathname.match(path);
-			if (!match) continue;
-
-			// SameSite=Lax already keeps the cookie off cross-site posts; browsers that send Sec-Fetch-Site get them refused outright.
-			const site = req.headers.get("Sec-Fetch-Site");
-			if (method === "POST" && site && site !== "same-origin" && site !== "none") return new Response("Cross-site form posts are refused", { status: 403 });
-
-			const store = env.STORE.getByName("main");
-			const cookie = sessionCookie(req);
-			const settings = cookie ? await store.session(cookie) : null;
-			const session = settings ? cookie : null;
-			const c: Ctx = { req, env, url, store, session, params: match.slice(1), view: { nonce: newNonce(), signedIn: !!settings, settings: settings ?? DEFAULTS } };
-			if (!route[3]) return route[2](c);
-			if (!session) return req.method === "GET" ? redirect("/") : new Response("Sign in first", { status: 403 });
-			return route[2]({ ...c, session });
+		try {
+			return await route(req, env);
+		} catch (e) {
+			// The stack goes to the Worker's logs; the visitor gets a plain page without it.
+			console.error(e);
+			return new Response("Something went wrong. The details are in the Worker's logs.", { status: 500, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 		}
-		// Unknown routes return before the Durable Object is touched, so scanner traffic costs nothing.
-		return new Response("Not found", { status: 404 });
 	},
 
 	async scheduled(_controller, env, ctx) {
 		ctx.waitUntil(env.STORE.getByName("main").deliverDue());
 	},
 } satisfies ExportedHandler<Env>;
+
+/** Finds the route for a request, checks the session, and runs the handler. */
+async function route(req: Request, env: Env): Promise<Response> {
+	const url = new URL(req.url);
+	for (const r of ROUTES) {
+		const [method, path] = r;
+		const match = req.method === method && url.pathname.match(path);
+		if (!match) continue;
+
+		// SameSite=Lax already keeps the cookie off cross-site posts; browsers that send Sec-Fetch-Site get them refused outright.
+		const site = req.headers.get("Sec-Fetch-Site");
+		if (method === "POST" && site && site !== "same-origin" && site !== "none") return new Response("Cross-site form posts are refused", { status: 403 });
+
+		const store = env.STORE.getByName("main");
+		const cookie = sessionCookie(req);
+		const settings = cookie ? await store.session(cookie) : null;
+		const session = settings ? cookie : null;
+		const c: Ctx = { req, env, url, store, session, params: match.slice(1), view: { nonce: newNonce(), signedIn: !!settings, settings: settings ?? DEFAULTS } };
+		if (!r[3]) return r[2](c);
+		if (!session) return req.method === "GET" ? redirect("/") : new Response("Sign in first", { status: 403 });
+		return r[2]({ ...c, session });
+	}
+	// Unknown routes return before the Durable Object is touched, so scanner traffic costs nothing.
+	return new Response("Not found", { status: 404 });
+}
