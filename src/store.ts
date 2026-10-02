@@ -21,7 +21,7 @@ export class Store extends DurableObject<Env> {
 		this.sessions = new Sessions(sql);
 		this.letters = new Letters(sql, new Cipher(sql));
 		this.settings = new SettingsStore(sql);
-		this.backups = new Backups(this.letters, this.settings);
+		this.backups = new Backups(sql, this.letters, this.settings);
 	}
 
 	createLink() {
@@ -74,10 +74,17 @@ export class Store extends DurableObject<Env> {
 		this.letters.remove(id);
 	}
 
-	/** Runs one delivery pass. A call that arrives while a pass is running joins it, so overlapping cron runs never send a letter twice. */
+	/** Runs one delivery pass: due letters, then the backup email if one is due. A call that arrives while a pass is running joins it, so overlapping cron runs never send a letter twice. */
 	deliverDue(): Promise<number> {
 		this.sessions.prune();
-		this.delivering ??= deliverDue(this.letters, this.env).finally(() => (this.delivering = null));
+		this.delivering ??= this.deliveryPass().finally(() => (this.delivering = null));
 		return this.delivering;
+	}
+
+	/** Sends due letters, then the backup email if one is due. Output: how many letters were sent. */
+	private async deliveryPass(): Promise<number> {
+		const sent = await deliverDue(this.letters, this.env);
+		await this.backups.emailIfDue(this.env);
+		return sent;
 	}
 }

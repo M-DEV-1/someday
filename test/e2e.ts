@@ -124,13 +124,21 @@ try {
 
 	// Delivery: the cron sends the due letter only, and it can then be read.
 	await sleep(1500);
-	await runCron(() => smtp.inbox.length === 2);
+	await runCron(() => smtp.inbox.length === 3);
 	const delivered = mail(1);
 	assert.equal(delivered.to, `<${OWNER}>`);
 	assert.equal(delivered.subject, "Héllo <future> ✉");
 	assert.match(delivered.text, /^Dear me,\nstill here\?\n\n--\nYou wrote this on /);
 	assert.match(await text(`/letters/${soonId}`), /Héllo &#60;future&#62; ✉[\s\S]*Dear me,\nstill here\?/);
 	assert.match(await text("/letters"), /Sealed<\/h1>[\s\S]*In a year[\s\S]*Delivered<\/h1>[\s\S]*Héllo/);
+
+	// The same pass emails the first backup, with every letter attached, the sealed one included.
+	const backupMail = mail(2);
+	assert.match(backupMail.subject, /^Someday backup, /);
+	assert.match(backupMail.attachments[0]?.filename ?? "", /^someday-backup-\d{4}-\d{2}-\d{2}\.json$/);
+	const emailed = readBackup(backupMail.attachments[0]?.content ?? "");
+	assert.equal(emailed.letters.find((l) => l.subject === "In a year")?.body, "Hi");
+	assert.equal(emailed.letters.length, 2);
 
 	// A failed send is shown on the letter and retried later instead of being dropped.
 	smtp.rejectAuth = true;
@@ -139,7 +147,7 @@ try {
 	await sleep(1500);
 	await runCron(async () => /Could not send, 1 try, retrying/.test(await text("/letters")));
 	assert.match(await text("/letters"), /535 5\.7\.8/);
-	assert.equal(smtp.inbox.length, 2);
+	assert.equal(smtp.inbox.length, 3, "the next backup is 30 days away");
 
 	// Settings change every page except Settings itself, and custom CSS cannot close its style element.
 	assert.match(await text("/settings"), /Appearance[\s\S]*Writing/);

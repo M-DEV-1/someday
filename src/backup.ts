@@ -1,5 +1,10 @@
+import { configProblems, type Env, smtpConfig } from "./env";
 import type { Letter, Letters } from "./letters";
+import { errorText, type Mail, sendOne } from "./mail";
 import type { Settings, SettingsStore } from "./settings";
+import { DAY, now } from "./time";
+
+const EVERY = 30 * DAY;
 
 /** A full copy of one Someday: the owner's settings and every letter in plain text. Dates are ISO 8601, so the file can be read without Someday. */
 export interface Backup {
@@ -21,12 +26,40 @@ export interface BackupLetter {
 	delivered: string | null;
 }
 
-/** Builds backups from the letters and settings tables. */
+/** Builds backups from the letters and settings tables, and emails one to the owner every 30 days. The `backup_schedule` table holds when the next email is due. */
 export class Backups {
 	constructor(
+		private sql: SqlStorage,
 		private letters: Letters,
 		private settings: SettingsStore,
-	) {}
+	) {
+		sql.exec("CREATE TABLE IF NOT EXISTS backup_schedule (id INTEGER PRIMARY KEY CHECK (id = 1), next_at INTEGER NOT NULL)");
+	}
+
+	/**
+	 * Emails a backup to the owner when one is due: on the first delivery pass after the first letter is written, then every 30 days.
+	 * A failed send is tried again a day later. Nothing is sent while the owner has the email turned off, the secrets are not set, or there are no letters.
+	 */
+	async emailIfDue(env: Env): Promise<void> {
+		if (!this.settings.get().backup || configProblems(env).length > 0) return;
+		const t = now();
+		const next = this.sql.exec<{ next_at: number }>("SELECT next_at FROM backup_schedule").toArray()[0]?.next_at ?? 0;
+		if (next > t) return;
+		const backup = await this.build();
+		if (backup.letters.length === 0) return;
+		try {
+			// ponytail: the whole backup goes in one attachment; Gmail refuses messages over 25 MB, about 18 MB of letters
+			await sendOne(smtpConfig(env), backupMail(backup, env.OWNER_EMAIL.trim()));
+			this.scheduleNext(t + EVERY);
+		} catch (e) {
+			console.error(`Backup email failed: ${errorText(e)}`);
+			this.scheduleNext(t + DAY);
+		}
+	}
+
+	private scheduleNext(at: number): void {
+		this.sql.exec("INSERT OR REPLACE INTO backup_schedule (id, next_at) VALUES (1, ?)", at);
+	}
 
 	/** Every readable letter and the settings. Letters that can no longer be decrypted are left out, since their text is gone. */
 	async build(): Promise<Backup> {
@@ -45,6 +78,17 @@ function toBackupLetter(l: Letter): BackupLetter {
 		written: iso(l.createdAt),
 		deliver: iso(l.deliverAt),
 		delivered: l.sentAt === null ? null : iso(l.sentAt),
+	};
+}
+
+function backupMail(backup: Backup, to: string): Mail {
+	const today = new Date().toLocaleDateString("en-US", { dateStyle: "medium" });
+	const n = backup.letters.length;
+	return {
+		to,
+		subject: `Someday backup, ${today}`,
+		text: `Your Someday backup is attached: ${n} ${n === 1 ? "letter" : "letters"} and your settings.\n\nThe file holds every letter in plain text, sealed ones included, so opening it shows letters that have not arrived yet.\n\nTo move to a new Someday, deploy one and use Restore on its Settings page. The next backup comes in 30 days; you can turn these emails off in Settings.\n`,
+		attachment: { filename: backupFilename(), type: "application/json", content: JSON.stringify(backup, null, "\t") },
 	};
 }
 
