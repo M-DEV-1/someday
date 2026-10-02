@@ -46,7 +46,7 @@ export async function openSmtp(cfg: SmtpConfig) {
 			await io.cmd(`${message(cfg.from, mail)}\r\n.`, 250);
 		},
 		async close(): Promise<void> {
-			await io.cmd("QUIT", 221).catch(() => {});
+			if (!io.dead()) await io.cmd("QUIT", 221).catch(() => {});
 			await socket.close().catch(() => {});
 		},
 	};
@@ -62,12 +62,13 @@ export async function sendOne(cfg: SmtpConfig, mail: Mail): Promise<void> {
 	}
 }
 
-/** Wraps a socket with line-based SMTP reads and writes. A reply that takes longer than 20 seconds throws. */
+/** Wraps a socket with line-based SMTP reads and writes. A reply that takes longer than 20 seconds throws and marks the connection dead. */
 function wrap(socket: Socket) {
 	const reader = socket.readable.getReader();
 	const writer = socket.writable.getWriter();
 	const decoder = new TextDecoder();
 	let buf = "";
+	let dead = false;
 
 	async function reply(): Promise<{ code: number; text: string }> {
 		for (;;) {
@@ -82,8 +83,16 @@ function wrap(socket: Socket) {
 			const timeout = new Promise<never>((_, reject) => {
 				timer = setTimeout(() => reject(new Error("SMTP server did not answer within 20 seconds")), REPLY_TIMEOUT_MS);
 			});
-			const { value, done } = await Promise.race([reader.read(), timeout]).finally(() => clearTimeout(timer));
-			if (done) throw new Error("SMTP server closed the connection");
+			const { value, done } = await Promise.race([reader.read(), timeout])
+				.catch((e) => {
+					dead = true;
+					throw e;
+				})
+				.finally(() => clearTimeout(timer));
+			if (done) {
+				dead = true;
+				throw new Error("SMTP server closed the connection");
+			}
 			buf += decoder.decode(value, { stream: true });
 		}
 	}
@@ -96,6 +105,8 @@ function wrap(socket: Socket) {
 
 	return {
 		expect,
+		/** True once the server has timed out or hung up, so QUIT would only wait another 20 seconds. */
+		dead: () => dead,
 		async cmd(line: string, ...codes: number[]) {
 			await writer.write(new TextEncoder().encode(`${line}\r\n`));
 			return expect(...codes);
