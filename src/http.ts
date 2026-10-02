@@ -19,7 +19,7 @@ export interface OwnerCtx extends Ctx {
 	session: string;
 }
 
-/** What every page needs to render: the nonce that lets its style and script elements run, whether the owner is signed in, and the owner's settings (the defaults when signed out). */
+/** What every page needs to render: the nonce that lets its style element apply, whether the owner is signed in, and the owner's settings (the defaults when signed out). */
 export interface View {
 	nonce: string;
 	signedIn: boolean;
@@ -30,7 +30,7 @@ const COOKIE = "someday";
 // Browsers cap cookie lifetime at 400 days, the same as the session.
 const COOKIE_MAX_AGE = 400 * 86400;
 
-/** A page response. Only style and script elements carrying this request's nonce run, so injected markup cannot run code. */
+/** A page response. Only the style element carrying this request's nonce and scripts from this site run, so injected markup cannot run code. */
 export function html(c: { view: View }, body: Html, status = 200): Response {
 	const n = c.view.nonce;
 	return new Response(body.value, {
@@ -38,7 +38,7 @@ export function html(c: { view: View }, body: Html, status = 200): Response {
 		headers: {
 			"Content-Type": "text/html; charset=utf-8",
 			"Cache-Control": "no-store",
-			"Content-Security-Policy": `default-src 'none'; style-src 'nonce-${n}'; script-src 'nonce-${n}'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`,
+			"Content-Security-Policy": `default-src 'none'; style-src 'nonce-${n}'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`,
 			"Referrer-Policy": "no-referrer",
 			"X-Content-Type-Options": "nosniff",
 		},

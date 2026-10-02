@@ -8,5 +8,7 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Store"] }],
   "triggers": { "crons": ["*/5 * * * *"] },
+  "assets": { "directory": "public" },
+  "build": { "command": "npm run build" },
   "observability": { "enabled": true }
 }

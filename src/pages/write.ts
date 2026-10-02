@@ -41,36 +41,6 @@ ${error && html`<p class="bad">${error}</p>`}
 <input type="hidden" name="deliver_at"><input type="hidden" name="tz">
 </form>
 ${prompts.length > 0 && html`<details><summary class="small">Prompts</summary><ul>${prompts.map((p) => html`<li>${p}</li>`)}</ul></details>`}
-<script nonce="${view.nonce}">
-const f = document.getElementById("write");
-const when = document.getElementById("when");
-const pad = (n) => String(n).padStart(2, "0");
-const localDate = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
-const medium = (d) => d.toLocaleDateString("en-US", { dateStyle: "medium" });
-const nineAm = () => new Date(f.date.value + "T09:00");
-function show() {
-	if (f.date.value) when.textContent = "Arrives 9:00, " + medium(nineAm()) + ", at " + when.dataset.to + ".";
-}
-function fromChoice() {
-	const months = Number(f.in.value);
-	if (!months) return;
-	const d = new Date();
-	const day = d.getDate();
-	d.setDate(1);
-	d.setMonth(d.getMonth() + months);
-	d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
-	f.date.value = localDate(d);
-	show();
-}
-f.date.min = localDate(new Date(Date.now() + 864e5));
-f.in.addEventListener("change", fromChoice);
-f.date.addEventListener("change", () => { f.in.value = "0"; show(); });
-f.addEventListener("submit", () => {
-	f.deliver_at.value = f.date.value ? Math.floor(nineAm().getTime() / 1000) : "";
-	f.tz.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
-});
-if ("prefix" in f.subject.dataset) f.subject.value = [f.subject.dataset.prefix, medium(new Date())].filter(Boolean).join(" ");
-if (f.date.value) show(); else fromChoice();
-</script>`,
+<script type="module" src="/js/write.js"></script>`,
 	);
 }

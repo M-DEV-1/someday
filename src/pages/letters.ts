@@ -16,7 +16,7 @@ export function lettersPage(view: View, letters: LetterSummary[], justSent = "")
 ${list(sealed.map(sealedRow))}
 <h1>Delivered</h1>
 ${list(delivered.map(deliveredRow))}
-${confirmDeletes(view)}`,
+${confirmDeletes()}`,
 	);
 }
 
@@ -28,7 +28,7 @@ export function letterPage(view: View, letter: Delivered<Letter>): Html {
 <h1>${letter.subject}</h1>
 <div class="body">${letter.body}</div>
 ${deleteForm(letter.id)}
-${confirmDeletes(view)}`,
+${confirmDeletes()}`,
 	);
 }
 
@@ -50,9 +50,7 @@ function deleteForm(id: string, label = "Delete this letter"): Html {
 	return html`<form class="delete" method="post" action="/letters/delete"><input type="hidden" name="id" value="${id}"><button class="link small">${label}</button></form>`;
 }
 
-/** Asks before a delete form submits. It is a nonce'd script because the policy blocks inline onsubmit handlers. */
-function confirmDeletes(view: View): Html {
-	return html`<script nonce="${view.nonce}">
-for (const f of document.querySelectorAll("form.delete")) f.addEventListener("submit", (e) => { if (!confirm("Delete this letter for good?")) e.preventDefault(); });
-</script>`;
+/** Loads the script that asks before a delete form submits. */
+function confirmDeletes(): Html {
+	return html`<script type="module" src="/js/letters.js"></script>`;
 }
