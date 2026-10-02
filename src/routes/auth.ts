@@ -11,8 +11,9 @@ export async function signIn(c: Ctx): Promise<Response> {
 	const email = field(await c.req.formData(), "email");
 	if (!isOwner(c.env, email)) return html(signInPage({ sent: true }));
 
+	// Over the limit looks the same as a stranger's address, so the limit does not confirm which address is the owner's.
 	const link = await c.store.createLink();
-	if (!link) return html(signInPage({ error: "A link was sent a moment ago. Check your inbox, or try again in a minute." }), 429);
+	if (!link) return html(signInPage({ sent: true }));
 
 	try {
 		await sendOne(smtpConfig(c.env), {

@@ -39,7 +39,7 @@ try {
 		try { await fetch(BASE); break; } catch { if (i > 80) throw new Error("wrangler dev did not start"); await sleep(500); }
 	}
 
-	// Signed out: only the sign-in page, and nothing reveals the owner.
+	// Signed out: only the sign-in page, and a stranger's address gets no mail.
 	assert.equal((await get("/wp-login.php")).status, 404);
 	assert.match(await text("/"), /Email me a sign-in link/);
 	assert.equal((await get("/letters")).status, 303);
@@ -47,12 +47,13 @@ try {
 	assert.match(await (await post("/signin", { email: "stranger@example.com" })).text(), /Check your inbox/);
 	assert.equal(smtp.inbox.length, 0, "a stranger's address gets no mail");
 
-	// The owner gets a one-time link; a second request within a minute is refused.
+	// The owner gets a one-time link; a second request within a minute looks the same but sends nothing.
 	assert.equal((await post("/signin", { email: "ME@example.com" })).status, 200);
 	assert.equal(smtp.inbox.length, 1);
 	assert.equal(smtp.inbox[0].subject, "Your Someday sign-in link");
 	const link = smtp.inbox[0].text.match(/\/auth\?t=([\w-]+)/)[1];
-	assert.equal((await post("/signin", { email: OWNER })).status, 429);
+	assert.match(await (await post("/signin", { email: OWNER })).text(), /Check your inbox/);
+	assert.equal(smtp.inbox.length, 1);
 
 	// Opening the link only shows a button; pressing it signs in once.
 	assert.match(await text(`/auth?t=${link}`), /Sign in to Someday/);
