@@ -1,3 +1,4 @@
+import { DELIVERY_CHOICES } from "../settings";
 import { esc, layout } from "./layout";
 
 export interface Draft {
@@ -9,13 +10,6 @@ export interface Draft {
 	months: number;
 }
 
-export const DELIVERY_CHOICES: [months: number, label: string][] = [
-	[6, "6 months"],
-	[12, "1 year"],
-	[36, "3 years"],
-	[60, "5 years"],
-	[120, "10 years"],
-];
 
 const PROMPTS = [
 	"What are you worried about right now that you hope turned out fine?",

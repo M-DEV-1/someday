@@ -1,7 +1,8 @@
 import { field, html, redirect, type Ctx } from "../http";
 import type { LetterInput } from "../letters";
 import { letterPage, lettersPage } from "../pages/letters";
-import { DELIVERY_CHOICES, newDraft, writePage, type Draft } from "../pages/write";
+import { newDraft, writePage, type Draft } from "../pages/write";
+import { DELIVERY_CHOICES } from "../settings";
 import { DAY, now, safeTimeZone } from "../time";
 
 const MAX_YEARS_AHEAD = 100;
