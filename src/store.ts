@@ -67,9 +67,12 @@ export class Store extends DurableObject<Env> {
 		return this.backups.lastError();
 	}
 
-	/** Restores an uploaded backup file, read from a stream so the Worker does not decode or parse it. */
-	async restoreFile(file: ReadableStream<Uint8Array>) {
-		return this.backups.restoreFile(await new Response(file).text());
+	/** Restores a backup from the restore form's request body, which is read and parsed here rather than in the Worker, for the same CPU reason as `backupFile`. Input: the multipart body and its Content-Type header. */
+	async restoreUpload(body: ReadableStream<Uint8Array>, contentType: string): Promise<{ added: number; skipped: number } | { error: string }> {
+		const form = await new Response(body, { headers: { "Content-Type": contentType } }).formData().catch(() => null);
+		const file = form?.get("file");
+		if (!(file instanceof File) || file.size === 0) return { error: "Choose a backup file to restore." };
+		return this.backups.restoreFile(await file.text());
 	}
 
 	readLetter(id: string) {

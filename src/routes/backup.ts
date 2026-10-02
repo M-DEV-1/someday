@@ -16,8 +16,8 @@ export async function downloadBackup(c: OwnerCtx): Promise<Response> {
 
 /** Restores an uploaded backup file, then shows how many letters were added. */
 export async function restoreBackup(c: OwnerCtx): Promise<Response> {
-	const file = (await c.req.formData()).get("file");
-	const result = file instanceof File && file.size > 0 ? await c.store.restoreFile(file.stream()) : { error: "Choose a backup file to restore." };
+	const body = c.req.body;
+	const result = body ? await c.store.restoreUpload(body, c.req.headers.get("Content-Type") ?? "") : { error: "Choose a backup file to restore." };
 	if ("error" in result) return html(c, settingsPage(c.view, c.view.settings, c.env.OWNER_EMAIL, { error: result.error }), 400);
 	return redirect(`/settings?restored=${result.added}&skipped=${result.skipped}`);
 }
