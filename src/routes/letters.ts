@@ -27,6 +27,11 @@ export async function readLetter(c: Ctx): Promise<Response> {
 	return letter ? html(letterPage(letter)) : redirect("/letters");
 }
 
+export async function deleteLetter(c: Ctx): Promise<Response> {
+	await c.store.deleteLetter(field(await c.req.formData(), "id"));
+	return redirect("/letters");
+}
+
 /**
  * Validates the write form. The browser sends `deliver_at` as 9:00 local time on the chosen date; without JavaScript the date, or the "Deliver in" choice, is taken at 9:00 UTC.
  * Returns the draft to refill the form with, and either a letter ready to store or an error message.

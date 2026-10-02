@@ -30,6 +30,7 @@ export function letterPage(letter: Letter): string {
 <h2>${esc(letter.subject)}</h2>
 <p class="muted">Written ${formatDate(letter.createdAt, letter.tz)} · delivered ${formatDate(letter.sentAt!, letter.tz)}</p>
 <div class="letter-body">${esc(letter.body)}</div>
+${deleteForm(letter.id)}
 </div>`,
 		true,
 	);
@@ -39,9 +40,13 @@ function upcomingRow(l: LetterSummary): string {
 	const state = l.attempts
 		? `<span class="error" title="${esc(l.lastError ?? "")}">Could not send (${l.attempts} ${l.attempts === 1 ? "try" : "tries"}), retrying: ${esc(l.lastError ?? "")}</span>`
 		: `Arrives ${formatDate(l.deliverAt, l.tz)}, ${fromNow(l.deliverAt)}`;
-	return `<li><span>${esc(l.subject)}</span><span class="muted">${state}</span></li>`;
+	return `<li><span>${esc(l.subject)}</span><span class="muted">${state}${deleteForm(l.id)}</span></li>`;
 }
 
 function deliveredRow(l: LetterSummary): string {
 	return `<li><a href="/letters/${l.id}">${esc(l.subject)}</a><span class="muted">Delivered ${formatDate(l.sentAt!, l.tz)}</span></li>`;
+}
+
+function deleteForm(id: string): string {
+	return `<form method="post" action="/letters/delete" onsubmit="return confirm('Delete this letter for good?')"><input type="hidden" name="id" value="${esc(id)}"><button class="link">Delete</button></form>`;
 }

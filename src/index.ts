@@ -2,7 +2,7 @@ import type { Env } from "./env";
 import { html, redirect, sessionCookie, type Ctx } from "./http";
 import { signInPage } from "./pages/signin";
 import { confirmLink, redeemLink, signIn, signOut } from "./routes/auth";
-import { createLetter, listLetters, readLetter, writeForm } from "./routes/letters";
+import { createLetter, deleteLetter, listLetters, readLetter, writeForm } from "./routes/letters";
 import { Store } from "./store";
 
 export { Store };
@@ -19,6 +19,7 @@ const ROUTES: [string, RegExp, Handler, boolean][] = [
 	["GET", /^\/letters$/, listLetters, true],
 	["POST", /^\/letters$/, createLetter, true],
 	["GET", /^\/letters\/([0-9A-Z]{26})$/, readLetter, true],
+	["POST", /^\/letters\/delete$/, deleteLetter, true],
 ];
 
 export default {
