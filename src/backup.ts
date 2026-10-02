@@ -13,6 +13,8 @@ export interface Backup {
 	exportedAt: string;
 	settings: Settings;
 	letters: BackupLetter[];
+	/** How many letters could not be decrypted and so are not in this file. */
+	unreadable: number;
 }
 
 /** What a checked backup file restores. */
@@ -52,7 +54,7 @@ export class Backups {
 		const next = this.sql.exec<{ next_at: number }>("SELECT next_at FROM backup_state").toArray()[0]?.next_at ?? 0;
 		if (next > t) return;
 		const backup = await this.build();
-		if (backup.letters.length === 0) return;
+		if (backup.letters.length === 0 && backup.unreadable === 0) return;
 		try {
 			// ponytail: the whole backup goes in one attachment; Gmail refuses messages over 25 MB, about 18 MB of letters
 			await sendOne(smtpConfig(env), backupMail(backup, env.OWNER_EMAIL.trim()));
@@ -92,15 +94,23 @@ export class Backups {
 		this.sql.exec("INSERT OR REPLACE INTO backup_state (id, next_at, last_error) VALUES (1, ?, ?)", at, error);
 	}
 
-	/** Every readable letter and the settings. Letters that can no longer be decrypted are left out, since their text is gone. */
+	/** Every readable letter and the settings. Letters that can no longer be decrypted are left out, since their text is gone, and counted in `unreadable`. */
 	/** The text of a backup file. */
 	async file(): Promise<string> {
 		return JSON.stringify(await this.build(), null, "\t");
 	}
 
 	private async build(): Promise<Backup> {
-		const letters = (await this.letters.all()).filter((l) => !l.unreadable).map(toBackupLetter);
-		return { format: "someday-backup", version: 1, exportedAt: new Date().toISOString(), settings: this.settings.get(), letters };
+		const all = await this.letters.all();
+		const letters = all.filter((l) => !l.unreadable).map(toBackupLetter);
+		return {
+			format: "someday-backup",
+			version: 1,
+			exportedAt: new Date().toISOString(),
+			settings: this.settings.get(),
+			letters,
+			unreadable: all.length - letters.length,
+		};
 	}
 }
 
@@ -163,10 +173,14 @@ function isObject(v: unknown): v is Record<string, unknown> {
 function backupMail(backup: Backup, to: string): Mail {
 	const today = new Date().toLocaleDateString("en-US", { dateStyle: "medium" });
 	const n = backup.letters.length;
+	const lost =
+		backup.unreadable > 0
+			? `\n\n${backup.unreadable} ${backup.unreadable === 1 ? "letter" : "letters"} could not be decrypted and ${backup.unreadable === 1 ? "is" : "are"} not in the file.`
+			: "";
 	return {
 		to,
 		subject: `Someday backup, ${today}`,
-		text: `Your Someday backup is attached: ${n} ${n === 1 ? "letter" : "letters"} and your settings.\n\nThe file holds every letter in plain text, sealed ones included, so opening it shows letters that have not arrived yet.\n\nTo move to a new Someday, deploy one and use Restore on its Settings page. The next backup comes in 30 days; you can turn these emails off in Settings.\n`,
+		text: `Your Someday backup is attached: ${n} ${n === 1 ? "letter" : "letters"} and your settings.${lost}\n\nThe file holds every letter in plain text, sealed ones included, so opening it shows letters that have not arrived yet.\n\nTo move to a new Someday, deploy one and use Restore on its Settings page. The next backup comes in 30 days; you can turn these emails off in Settings.\n`,
 		attachment: { filename: backupFilename(), type: "application/json", content: JSON.stringify(backup, null, "\t") },
 	};
 }

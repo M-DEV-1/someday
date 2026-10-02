@@ -59,6 +59,7 @@ function mail(i: number): Mail {
 /** The parts of a backup file the test checks. */
 interface Backup {
 	settings: { theme: string; backup: boolean };
+	unreadable: number;
 	letters: { id: string; subject: string; body: string; delivered: string | null }[];
 }
 
@@ -155,6 +156,7 @@ try {
 	const emailed = readBackup(backupMail.attachments[0]?.content ?? "");
 	assert.equal(emailed.letters.find((l) => l.subject === "In a year")?.body, "Hi");
 	assert.equal(emailed.letters.length, 2);
+	assert.equal(emailed.unreadable, 0);
 
 	// A letter the server refuses is marked failed, and the letter after it in the same pass still goes out.
 	smtp.refuseSubject = "Refuse me";
