@@ -1,6 +1,7 @@
 import { DAY, now } from "./time";
 
 const LINK_TTL = 15 * 60;
+const SESSION_TTL = 400 * DAY;
 const LINK_GAP = 60;
 const LINKS_PER_DAY = 10;
 
@@ -24,6 +25,17 @@ export class Sessions {
 			.one();
 		if (n >= LINKS_PER_DAY || (latest ?? 0) > t - LINK_GAP) return null;
 		this.sql.exec("INSERT INTO tokens VALUES (?, 'link', ?, ?)", hash, t, t + LINK_TTL);
+		return token;
+	}
+
+	/** Uses up a sign-in link token. Returns a new session token, or null if the link is unknown, expired or already used. */
+	async redeemLink(link: string): Promise<string | null> {
+		const linkHash = await sha256(link);
+		const [token, hash] = await newToken();
+		const t = now();
+		const used = this.sql.exec("UPDATE tokens SET expires_at = 0 WHERE hash = ? AND kind = 'link' AND expires_at > ?", linkHash, t).rowsWritten;
+		if (!used) return null;
+		this.sql.exec("INSERT INTO tokens VALUES (?, 'session', ?, ?)", hash, t, t + SESSION_TTL);
 		return token;
 	}
 }
