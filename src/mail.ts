@@ -12,6 +12,8 @@ export interface Mail {
 	to: string;
 	subject: string;
 	text: string;
+	/** A file sent with the text, such as a backup. */
+	attachment?: { filename: string; type: string; content: string };
 }
 
 const REPLY_TIMEOUT_MS = 20_000;
@@ -118,20 +120,40 @@ function wrap(socket: Socket) {
 	};
 }
 
-/** Builds a plain-text UTF-8 message. The body is base64, so no line can start with the "." that ends DATA. */
+/** Builds a UTF-8 message: plain text, or plain text and one attachment as multipart/mixed. Every part is base64, so no line can start with the "." that ends DATA. */
 function message(from: string, mail: Mail): string {
-	return [
+	const head = [
 		`From: Someday <${from}>`,
 		`To: <${mail.to}>`,
 		`Subject: ${encodedWords(mail.subject)}`,
 		`Date: ${new Date().toUTCString()}`,
 		`Message-ID: <${crypto.randomUUID()}@${from.split("@")[1] ?? "someday"}>`,
 		"MIME-Version: 1.0",
-		"Content-Type: text/plain; charset=utf-8",
+	];
+	const text = ["Content-Type: text/plain; charset=utf-8", "Content-Transfer-Encoding: base64", "", base64Lines(mail.text)];
+	const file = mail.attachment;
+	if (!file) return [...head, ...text].join("\r\n");
+	// Base64 never contains "-", so the boundary cannot appear inside a part.
+	const boundary = `someday-${crypto.randomUUID()}`;
+	return [
+		...head,
+		`Content-Type: multipart/mixed; boundary="${boundary}"`,
+		"",
+		`--${boundary}`,
+		...text,
+		`--${boundary}`,
+		`Content-Type: ${file.type}; name="${file.filename}"`,
+		`Content-Disposition: attachment; filename="${file.filename}"`,
 		"Content-Transfer-Encoding: base64",
 		"",
-		b64(mail.text).replace(/.{76}/g, "$&\r\n"),
+		base64Lines(file.content),
+		`--${boundary}--`,
 	].join("\r\n");
+}
+
+/** Base64 of the UTF-8 bytes of `s`, in lines of 76 characters as MIME requires. */
+function base64Lines(s: string): string {
+	return b64(s).replace(/.{76}/g, "$&\r\n").trimEnd();
 }
 
 /** Encodes a header value as RFC 2047 words of at most 45 UTF-8 bytes each, which keeps every word under the 75-character limit, folded onto separate lines. */

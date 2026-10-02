@@ -5,6 +5,7 @@ export interface Mail {
 	to: string;
 	subject: string;
 	text: string;
+	attachments: { filename: string; content: string }[];
 }
 
 export interface FakeSmtp {
@@ -51,13 +52,27 @@ export function startFakeSmtp(port: number): FakeSmtp {
 	return smtp;
 }
 
-/** Turns a raw message into its recipient, subject and text, undoing header folding, encoded words and the base64 body. */
+/** Turns a raw message into its recipient, subject, text and attachments, undoing header folding, encoded words, multipart and base64. */
 function decode(raw: string): Mail {
-	const [head = "", body = ""] = raw.split("\r\n\r\n");
+	const [head = "", ...rest] = raw.split("\r\n\r\n");
+	const body = rest.join("\r\n\r\n");
 	const headers = head.replace(/\r\n /g, " ");
 	const header = (name: string) => headers.match(new RegExp(`^${name}: (.*)$`, "m"))?.[1] ?? "";
 	const subject = header("Subject")
 		.replace(/\?= =\?/g, "?==?")
-		.replace(/=\?UTF-8\?B\?([^?]*)\?=/g, (_, b: string) => Buffer.from(b, "base64").toString("utf8"));
-	return { to: header("To"), subject, text: Buffer.from(body.replace(/\r\n/g, ""), "base64").toString("utf8") };
+		.replace(/=\?UTF-8\?B\?([^?]*)\?=/g, (_, b: string) => unbase64(b));
+	const boundary = header("Content-Type").match(/boundary="([^"]+)"/)?.[1];
+	if (!boundary) return { to: header("To"), subject, text: unbase64(body), attachments: [] };
+	const parts = body
+		.split(`--${boundary}`)
+		.slice(1, -1)
+		.map((part) => {
+			const [partHead = "", partBody = ""] = part.replace(/^\r\n/, "").split("\r\n\r\n");
+			return { filename: partHead.match(/filename="([^"]+)"/)?.[1] ?? "", content: unbase64(partBody) };
+		});
+	return { to: header("To"), subject, text: parts.find((p) => !p.filename)?.content ?? "", attachments: parts.filter((p) => p.filename) };
+}
+
+function unbase64(s: string): string {
+	return Buffer.from(s.replace(/\r\n/g, ""), "base64").toString("utf8");
 }
