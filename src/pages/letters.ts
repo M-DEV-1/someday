@@ -1,7 +1,7 @@
 import type { View } from "../http";
-import { isDelivered, type Delivered, type Letter, type LetterSummary } from "../letters";
+import { type Delivered, isDelivered, type Letter, type LetterSummary } from "../letters";
 import { formatDate, fromNow } from "../time";
-import { html, type Html } from "./html";
+import { type Html, html } from "./html";
 import { layout } from "./layout";
 
 /** The owner's letters: sealed ones by arrival date, then delivered ones, newest first. `justSent` is the ID of a letter written a moment ago. */
@@ -38,7 +38,8 @@ function list(rows: Html[]): Html {
 
 /** Date, subject and a delete link. A letter that failed to send gets the server's reply on a second line. */
 function sealedRow(l: LetterSummary): Html {
-	const failed = l.attempts > 0 && html`<span class="bad small">Could not send, ${l.attempts} ${l.attempts === 1 ? "try" : "tries"}, retrying: ${l.lastError ?? ""}</span>`;
+	const failed =
+		l.attempts > 0 && html`<span class="bad small">Could not send, ${l.attempts} ${l.attempts === 1 ? "try" : "tries"}, retrying: ${l.lastError ?? ""}</span>`;
 	return html`<li><time>${formatDate(l.deliverAt, l.tz)}</time><span>${l.subject}</span>${deleteForm(l.id, "delete")}${failed}</li>`;
 }
 

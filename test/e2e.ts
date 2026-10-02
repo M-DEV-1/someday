@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startFakeSmtp, type Mail } from "./fake-smtp.ts";
+import { type Mail, startFakeSmtp } from "./fake-smtp.ts";
 
 const PORT = 8799;
 const SMTP_PORT = 2525;
@@ -58,7 +58,13 @@ async function runCron(done: () => boolean | Promise<boolean>) {
 
 try {
 	for (let i = 0; ; i++) {
-		try { await fetch(BASE); break; } catch { if (i > 80) throw new Error("wrangler dev did not start"); await sleep(500); }
+		try {
+			await fetch(BASE);
+			break;
+		} catch {
+			if (i > 80) throw new Error("wrangler dev did not start");
+			await sleep(500);
+		}
 	}
 
 	// Signed out: only the sign-in page, and a stranger's address gets no mail.
@@ -127,8 +133,15 @@ try {
 	assert.match(await text("/settings"), /Appearance[\s\S]*Writing/);
 	assert.equal((await post("/settings", { accent: "red" })).status, 400);
 	const saved = await post("/settings", {
-		theme: "dark", font: "sans", size: "20", accent: "#1a5fb4", greeting: "Hello me,", prefix: "Note from", deliverIn: "12",
-		prompts: "One\nTwo", css: "body { margin: 0 }</style><script>alert(1)</script>",
+		theme: "dark",
+		font: "sans",
+		size: "20",
+		accent: "#1a5fb4",
+		greeting: "Hello me,",
+		prefix: "Note from",
+		deliverIn: "12",
+		prompts: "One\nTwo",
+		css: "body { margin: 0 }</style><script>alert(1)</script>",
 	});
 	assert.equal(saved.status, 303);
 	const themed = await text("/");

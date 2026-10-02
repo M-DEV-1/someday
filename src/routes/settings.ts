@@ -1,5 +1,5 @@
 import { configProblems, smtpConfig } from "../env";
-import { html, redirect, type OwnerCtx } from "../http";
+import { html, type OwnerCtx, redirect } from "../http";
 import { errorText, sendOne } from "../mail";
 import { settingsPage } from "../pages/settings";
 import { readSettings } from "../settings";
@@ -23,7 +23,11 @@ export async function sendTest(c: OwnerCtx): Promise<Response> {
 	const problems = configProblems(c.env);
 	if (problems.length) return fail(`Not set up: ${problems.join(" ")}`);
 	try {
-		await sendOne(smtpConfig(c.env), { to: c.env.OWNER_EMAIL.trim(), subject: "Someday test email", text: "This is a test email from your Someday. Letters arrive the same way.\n" });
+		await sendOne(smtpConfig(c.env), {
+			to: c.env.OWNER_EMAIL.trim(),
+			subject: "Someday test email",
+			text: "This is a test email from your Someday. Letters arrive the same way.\n",
+		});
 	} catch (e) {
 		return fail(`The test email could not be sent. ${errorText(e)}`);
 	}

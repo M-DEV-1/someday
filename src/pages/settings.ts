@@ -1,9 +1,16 @@
 import type { View } from "../http";
-import { DELIVERY_CHOICES, FONTS, SIZES, THEMES, type Settings } from "../settings";
-import { html, type Html } from "./html";
+import { DELIVERY_CHOICES, FONTS, type Settings, SIZES, THEMES } from "../settings";
+import { type Html, html } from "./html";
 import { layout } from "./layout";
 
-const NAMES: Record<Settings["theme"] | Settings["font"], string> = { auto: "System", light: "Light", dark: "Dark", serif: "Serif", sans: "Sans", mono: "Mono" };
+const NAMES: Record<Settings["theme"] | Settings["font"], string> = {
+	auto: "System",
+	light: "Light",
+	dark: "Dark",
+	serif: "Serif",
+	sans: "Sans",
+	mono: "Mono",
+};
 
 /** The settings page. `settings` is what the form shows, which after a failed save is what was submitted; `to` is the owner's address. The owner's custom CSS is left out of this page. */
 export function settingsPage(view: View, settings: Settings, to: string, { notice = "", error = "" } = {}): Html {
@@ -13,9 +20,33 @@ export function settingsPage(view: View, settings: Settings, to: string, { notic
 <form method="post" action="/settings">
 <h1>Appearance</h1>
 <div class="fields">
-	${row("theme", "Theme", select("theme", THEMES.map((t) => [t, NAMES[t]]), settings.theme))}
-	${row("font", "Typeface", select("font", FONTS.map((f) => [f, NAMES[f]]), settings.font))}
-	${row("size", "Text size", select("size", SIZES.map((s) => [s, `${s}px`]), settings.size))}
+	${row(
+		"theme",
+		"Theme",
+		select(
+			"theme",
+			THEMES.map((t) => [t, NAMES[t]]),
+			settings.theme,
+		),
+	)}
+	${row(
+		"font",
+		"Typeface",
+		select(
+			"font",
+			FONTS.map((f) => [f, NAMES[f]]),
+			settings.font,
+		),
+	)}
+	${row(
+		"size",
+		"Text size",
+		select(
+			"size",
+			SIZES.map((s) => [s, `${s}px`]),
+			settings.size,
+		),
+	)}
 	${row("accent", "Accent", input("accent", settings.accent, 7, "#1a5fb4"))}
 	${hint("A colour for links and the Send button. Empty uses the text colour.")}
 </div>

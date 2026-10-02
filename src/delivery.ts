@@ -1,6 +1,6 @@
-import { configProblems, smtpConfig, type Env } from "./env";
+import { configProblems, type Env, smtpConfig } from "./env";
 import type { Letter, Letters } from "./letters";
-import { errorText, openSmtp, type Mail } from "./mail";
+import { errorText, type Mail, openSmtp } from "./mail";
 import { formatDate } from "./time";
 
 /** Letters sent per run. The cron runs every 5 minutes, so this allows 7,200 letters a day. */

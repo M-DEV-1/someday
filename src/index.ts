@@ -1,11 +1,11 @@
 import type { Env } from "./env";
-import { html, newNonce, redirect, sessionCookie, type Ctx, type OwnerCtx } from "./http";
+import { type Ctx, html, newNonce, type OwnerCtx, redirect, sessionCookie } from "./http";
 import { signInPage } from "./pages/signin";
-import { DEFAULTS } from "./settings";
 import { confirmLink, redeemLink, signIn, signOut, signOutEverywhere } from "./routes/auth";
-import { createLetter, deleteLetter, listLetters, readLetter, writeForm } from "./routes/letters";
 import { exportLetters } from "./routes/export";
+import { createLetter, deleteLetter, listLetters, readLetter, writeForm } from "./routes/letters";
 import { saveSettings, sendTest, settingsForm } from "./routes/settings";
+import { DEFAULTS } from "./settings";
 import { Store } from "./store";
 
 export { Store };
@@ -39,7 +39,10 @@ export default {
 		} catch (e) {
 			// The stack goes to the Worker's logs; the visitor gets a plain page without it.
 			console.error(e);
-			return new Response("Something went wrong. The details are in the Worker's logs.", { status: 500, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+			return new Response("Something went wrong. The details are in the Worker's logs.", {
+				status: 500,
+				headers: { "Content-Type": "text/plain; charset=utf-8" },
+			});
 		}
 	},
 

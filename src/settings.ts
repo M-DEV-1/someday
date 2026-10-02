@@ -94,7 +94,11 @@ export function checkSettings(raw: Record<string, unknown>): { settings: Setting
 		accent: text("accent") ?? DEFAULTS.accent,
 		greeting: text("greeting") ?? DEFAULTS.greeting,
 		prefix: text("prefix") ?? DEFAULTS.prefix,
-		deliverIn: choice(Number(raw["deliverIn"]), DELIVERY_CHOICES.map(([m]) => m), DEFAULTS.deliverIn),
+		deliverIn: choice(
+			Number(raw["deliverIn"]),
+			DELIVERY_CHOICES.map(([m]) => m),
+			DEFAULTS.deliverIn,
+		),
 		prompts: (Array.isArray(prompts) ? prompts : typeof prompts === "string" ? prompts.split("\n") : DEFAULTS.prompts)
 			.filter((p): p is string => typeof p === "string")
 			.map((p) => p.trim())
@@ -102,11 +106,16 @@ export function checkSettings(raw: Record<string, unknown>): { settings: Setting
 		css: typeof raw["css"] === "string" ? raw["css"] : DEFAULTS.css,
 	};
 	const error =
-		settings.accent && !/^#[0-9a-f]{6}$/i.test(settings.accent) ? "Accent must be a colour like #1a5fb4, or empty."
-		: settings.greeting.length > 200 ? "Greeting can be up to 200 characters."
-		: settings.prefix.length > 100 ? "Subject start can be up to 100 characters."
-		: settings.prompts.length > 20 || settings.prompts.some((p) => p.length > 200) ? "Prompts: up to 20, of up to 200 characters each."
-		: settings.css.length > 20_000 ? "Custom CSS can be up to 20,000 characters."
-		: undefined;
+		settings.accent && !/^#[0-9a-f]{6}$/i.test(settings.accent)
+			? "Accent must be a colour like #1a5fb4, or empty."
+			: settings.greeting.length > 200
+				? "Greeting can be up to 200 characters."
+				: settings.prefix.length > 100
+					? "Subject start can be up to 100 characters."
+					: settings.prompts.length > 20 || settings.prompts.some((p) => p.length > 200)
+						? "Prompts: up to 20, of up to 200 characters each."
+						: settings.css.length > 20_000
+							? "Custom CSS can be up to 20,000 characters."
+							: undefined;
 	return { settings, error };
 }

@@ -1,6 +1,6 @@
 import type { View } from "../http";
 import type { Settings } from "../settings";
-import { html, raw, type Html } from "./html";
+import { type Html, html, raw } from "./html";
 import { CSS } from "./style";
 
 /** Wraps page content in the shared document and the one-line header. The links show only when signed in. `customCss: false` leaves out the owner's own CSS, which the Settings page uses so a bad rule cannot hide the form that removes it. */

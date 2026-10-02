@@ -67,7 +67,10 @@ export class Sessions {
 /** Returns a random 32-byte base64url token and its hash. */
 async function newToken(): Promise<[string, string]> {
 	const bytes = crypto.getRandomValues(new Uint8Array(32));
-	const token = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+	const token = btoa(String.fromCharCode(...bytes))
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
 	return [token, await sha256(token)];
 }
 

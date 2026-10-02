@@ -1,6 +1,6 @@
 import type { View } from "../http";
 import { DELIVERY_CHOICES, type Settings } from "../settings";
-import { html, type Html } from "./html";
+import { type Html, html } from "./html";
 import { layout } from "./layout";
 
 export interface Draft {

@@ -1,6 +1,6 @@
 import type { Env } from "./env";
-import type { Settings } from "./settings";
 import type { Html } from "./pages/html";
+import type { Settings } from "./settings";
 import type { Store } from "./store";
 
 /** What a route handler gets: the request, env, the store stub, the session token if signed in, and the path match. */

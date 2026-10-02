@@ -1,5 +1,5 @@
 import type { View } from "../http";
-import { html, type Html } from "./html";
+import { type Html, html } from "./html";
 import { layout } from "./layout";
 
 /** The page a signed-out visitor sees. `sent` replaces the form with the line every address gets after submitting. */

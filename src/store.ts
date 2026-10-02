@@ -2,9 +2,9 @@ import { DurableObject } from "cloudflare:workers";
 import { Cipher } from "./cipher";
 import { deliverDue } from "./delivery";
 import type { Env } from "./env";
-import { Letters, type LetterInput } from "./letters";
+import { type LetterInput, Letters } from "./letters";
 import { Sessions } from "./sessions";
-import { SettingsStore, type Settings } from "./settings";
+import { type Settings, SettingsStore } from "./settings";
 
 /** The one Durable Object behind an instance. It owns the SQLite database and hands each call from the Worker to the module that owns that table. */
 export class Store extends DurableObject<Env> {
