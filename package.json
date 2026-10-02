@@ -2,6 +2,7 @@
   "name": "someday",
   "private": true,
   "type": "module",
+  "description": "Write letters to your future self, delivered by email from your own Cloudflare account.",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
@@ -11,5 +12,21 @@
     "@cloudflare/workers-types": "^5.20261002.1",
     "typescript": "^7.0.2",
     "wrangler": "^4.146.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "OWNER_EMAIL": {
+        "description": "The **only** address that can sign in. Letters are delivered here."
+      },
+      "SMTP_HOST": {
+        "description": "Your mail provider's SMTP server. Gmail: `smtp.gmail.com`. iCloud: `smtp.mail.me.com:587`. Fastmail: `smtp.fastmail.com`. Add `:587` for servers that use STARTTLS; the default port is 465."
+      },
+      "SMTP_USER": {
+        "description": "The login for that SMTP server, usually your full email address."
+      },
+      "SMTP_PASSWORD": {
+        "description": "An app password, not your normal password. Gmail: [create one here](https://myaccount.google.com/apppasswords) (needs 2-Step Verification)."
+      }
+    }
   }
 }
