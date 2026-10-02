@@ -17,6 +17,21 @@ export const DELIVERY_CHOICES: [months: number, label: string][] = [
 	[120, "10 years"],
 ];
 
+const PROMPTS = [
+	"What are you worried about right now that you hope turned out fine?",
+	"What does an ordinary day look like for you at the moment?",
+	"Who do you spend most of your time with?",
+	"What are you trying to get better at?",
+	"What habit do you hope you have dropped by now?",
+	"What would you like to be proud of when you read this?",
+	"What are you reading, watching or listening to these days?",
+	"What would you tell yourself on a hard day?",
+	"What small thing made you happy this week?",
+	"What do you think will have changed the most?",
+	"What decision are you weighing right now?",
+	"What do you want to remember about this year?",
+];
+
 export function newDraft(today: string): Draft {
 	return { subject: `A letter from ${today}`, body: "Dear future me,\n\n", date: "", months: 6 };
 }
@@ -34,6 +49,10 @@ export function writePage(to: string, draft: Draft, error = ""): string {
 	<div class="paper">
 		<input class="subject" name="subject" aria-label="Subject" maxlength="200" required value="${esc(draft.subject)}">
 		<textarea name="body" aria-label="Letter" maxlength="100000" required>${esc(draft.body)}</textarea>
+		<div class="paper-foot">
+			<button type="button" class="link" id="inspire">Inspire me</button>
+			<span id="prompt" class="muted"></span>
+		</div>
 	</div>
 	<aside>
 		<div><label>Deliver in</label><div class="chips">${chips}</div></div>
@@ -45,6 +64,7 @@ export function writePage(to: string, draft: Draft, error = ""): string {
 	</aside>
 </form>
 <script>
+const PROMPTS = ${JSON.stringify(PROMPTS)};
 const f = document.getElementById("write");
 const when = document.getElementById("when");
 const pad = (n) => String(n).padStart(2, "0");
@@ -69,6 +89,9 @@ f.addEventListener("change", (e) => {
 f.addEventListener("submit", () => {
 	f.deliver_at.value = f.date.value ? Math.floor(deliverAt().getTime() / 1000) : "";
 	f.tz.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+});
+document.getElementById("inspire").addEventListener("click", () => {
+	document.getElementById("prompt").textContent = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
 });
 if (f.date.value) show(); else fromChoice();
 </script>`,

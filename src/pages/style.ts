@@ -29,6 +29,8 @@ button.link { background: none; border: none; color: var(--muted); padding: 0; f
 @media (max-width: 760px) { .write { grid-template-columns: minmax(0, 1fr); } h1 { font-size: 32px; } }
 .paper input.subject { width: 100%; border: none; border-bottom: 1px solid var(--line); background: none; padding: 0 0 8px; font-size: 15px; color: var(--muted); }
 .paper textarea { width: 100%; min-height: 420px; border: none; background: none; resize: vertical; padding: 16px 0; font: 19px/1.7 Georgia, serif; outline: none; }
+.paper-foot { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; border-top: 1px solid var(--line); padding-top: 10px; }
+#prompt { font-style: italic; flex: 1; }
 aside > * + * { margin-top: 20px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chips input { position: absolute; opacity: 0; }
