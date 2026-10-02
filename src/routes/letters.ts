@@ -9,12 +9,12 @@ const MAX_YEARS_AHEAD = 100;
 
 export async function writeForm(c: Ctx): Promise<Response> {
 	const today = new Date().toLocaleDateString("en-US", { dateStyle: "medium" });
-	return html(c, writePage(c.view, c.env.OWNER_EMAIL, newDraft(today)));
+	return html(c, writePage(c.view, c.env.OWNER_EMAIL, newDraft(c.view.settings, today), { fresh: true }));
 }
 
 export async function createLetter(c: Ctx): Promise<Response> {
 	const { draft, input, error } = readDraft(await c.req.formData());
-	if (!input) return html(c, writePage(c.view, c.env.OWNER_EMAIL, draft, error), 400);
+	if (!input) return html(c, writePage(c.view, c.env.OWNER_EMAIL, draft, { error }), 400);
 	const id = await c.store.addLetter(input);
 	return redirect(`/letters?sent=${id}`);
 }

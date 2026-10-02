@@ -69,7 +69,7 @@ try {
 	assert.equal(crossSite.status, 403, "a form post from another site is refused");
 
 	// Writing: validation keeps the draft, the no-JavaScript "Deliver in" path works, and upcoming letters stay sealed.
-	assert.match(await text("/"), /A letter from[\s\S]*Send to the future/);
+	assert.match(await text("/"), /A letter from[\s\S]*Dear future me,[\s\S]*Send<\/button>[\s\S]*<summary class="small">Prompts/);
 	const past = await post("/letters", { subject: "Old", body: "Keep this text", date: "2000-01-01" });
 	assert.equal(past.status, 400);
 	assert.match(await past.text(), /Keep this text[\s\S]*Pick a date in the future/);
