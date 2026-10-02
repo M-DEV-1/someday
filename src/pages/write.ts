@@ -78,7 +78,10 @@ function fromChoice() {
 	const picked = f.querySelector("input[name=in]:checked");
 	if (!picked) return;
 	const d = new Date();
+	const day = d.getDate();
+	d.setDate(1);
 	d.setMonth(d.getMonth() + Number(picked.value));
+	d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
 	f.date.value = localDate(d);
 	show();
 }

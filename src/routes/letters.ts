@@ -54,12 +54,15 @@ function readDraft(form: FormData): { draft: Draft; input?: LetterInput; error?:
 	return { draft, input: { subject: draft.subject, body: draft.body, deliverAt, tz: safeTimeZone(field(form, "tz") || "UTC") } };
 }
 
-/** 9:00 UTC on the picked date, or that many months from today when only a "Deliver in" choice was made. NaN when neither was given. */
+/** 9:00 UTC on the picked date, or that many months from today when only a "Deliver in" choice was made, keeping the day of the month where it exists (Aug 31 plus 6 months is Feb 28 or 29). NaN when neither was given. */
 function utcNineAm(draft: Draft): number {
 	if (draft.date) return Date.parse(`${draft.date}T09:00:00Z`) / 1000;
 	if (!draft.months) return NaN;
 	const d = new Date();
+	const day = d.getUTCDate();
+	d.setUTCDate(1);
 	d.setUTCMonth(d.getUTCMonth() + draft.months);
+	d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()));
 	d.setUTCHours(9, 0, 0, 0);
 	return d.getTime() / 1000;
 }
