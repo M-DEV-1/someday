@@ -1,6 +1,6 @@
 import { field, html, redirect, type Ctx } from "../http";
 import type { LetterInput } from "../letters";
-import { lettersPage } from "../pages/letters";
+import { letterPage, lettersPage } from "../pages/letters";
 import { DELIVERY_CHOICES, newDraft, writePage, type Draft } from "../pages/write";
 import { DAY, now, safeTimeZone } from "../time";
 
@@ -20,6 +20,11 @@ export async function createLetter(c: Ctx): Promise<Response> {
 
 export async function listLetters(c: Ctx): Promise<Response> {
 	return html(lettersPage(await c.store.listLetters(), c.url.searchParams.get("sent") ?? ""));
+}
+
+export async function readLetter(c: Ctx): Promise<Response> {
+	const letter = await c.store.readLetter(c.params[0]);
+	return letter ? html(letterPage(letter)) : redirect("/letters");
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { LetterSummary } from "../letters";
+import type { Letter, LetterSummary } from "../letters";
 import { formatDate, fromNow } from "../time";
 import { esc, layout } from "./layout";
 
@@ -22,6 +22,19 @@ export function lettersPage(letters: LetterSummary[], justSent = ""): string {
 	);
 }
 
+/** A delivered letter, opened in full. */
+export function letterPage(letter: Letter): string {
+	return layout(
+		`<div class="narrow" style="max-width:720px">
+<p class="muted"><a href="/letters">My letters</a></p>
+<h2>${esc(letter.subject)}</h2>
+<p class="muted">Written ${formatDate(letter.createdAt, letter.tz)} · delivered ${formatDate(letter.sentAt!, letter.tz)}</p>
+<div class="letter-body">${esc(letter.body)}</div>
+</div>`,
+		true,
+	);
+}
+
 function upcomingRow(l: LetterSummary): string {
 	const state = l.attempts
 		? `<span class="error" title="${esc(l.lastError ?? "")}">Could not send (${l.attempts} ${l.attempts === 1 ? "try" : "tries"}), retrying: ${esc(l.lastError ?? "")}</span>`
@@ -30,5 +43,5 @@ function upcomingRow(l: LetterSummary): string {
 }
 
 function deliveredRow(l: LetterSummary): string {
-	return `<li><span>${esc(l.subject)}</span><span class="muted">Delivered ${formatDate(l.sentAt!, l.tz)}</span></li>`;
+	return `<li><a href="/letters/${l.id}">${esc(l.subject)}</a><span class="muted">Delivered ${formatDate(l.sentAt!, l.tz)}</span></li>`;
 }

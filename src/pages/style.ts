@@ -42,4 +42,5 @@ body.focus .write { grid-template-columns: minmax(0, 1fr); max-width: 760px; mar
 body.focus .paper textarea { min-height: 75vh; }
 ul.letters { list-style: none; padding: 0; margin: 0; }
 ul.letters li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.letter-body { white-space: pre-wrap; font: 19px/1.7 Georgia, serif; margin: 24px 0; }
 `;
