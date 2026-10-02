@@ -37,10 +37,11 @@ export function setSession(res: Response, session: string | null): Response {
 	return res;
 }
 
+/** Returns the session cookie when it has the shape of a token (43 base64url characters), so a junk cookie never reaches the store. */
 export function sessionCookie(req: Request): string | null {
 	for (const part of (req.headers.get("Cookie") ?? "").split(";")) {
 		const [k, v] = part.trim().split("=");
-		if (k === COOKIE && v) return v;
+		if (k === COOKIE && v && /^[A-Za-z0-9_-]{43}$/.test(v)) return v;
 	}
 	return null;
 }

@@ -43,6 +43,7 @@ try {
 	assert.equal((await get("/wp-login.php")).status, 404);
 	assert.match(await text("/"), /Email me a sign-in link/);
 	assert.equal((await get("/letters")).status, 303);
+	assert.equal((await fetch(BASE + "/letters", { headers: { Cookie: "someday=junk" }, redirect: "manual" })).status, 303);
 	assert.equal((await post("/letters", { subject: "x", body: "x", in: "12" })).status, 403);
 	assert.match(await (await post("/signin", { email: "stranger@example.com" })).text(), /Check your inbox/);
 	assert.equal(smtp.inbox.length, 0, "a stranger's address gets no mail");
