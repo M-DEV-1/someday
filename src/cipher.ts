@@ -8,4 +8,20 @@ export class Cipher {
 		const { aes_key } = sql.exec<{ aes_key: ArrayBuffer }>("SELECT aes_key FROM cipher_key").one();
 		this.key = crypto.subtle.importKey("raw", aes_key, "AES-GCM", false, ["encrypt", "decrypt"]);
 	}
+
+	/** Output: a 12-byte IV followed by the ciphertext of `text`. */
+	async seal(text: string): Promise<ArrayBuffer> {
+		const iv = crypto.getRandomValues(new Uint8Array(12));
+		const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await this.key, new TextEncoder().encode(text));
+		const out = new Uint8Array(12 + ct.byteLength);
+		out.set(iv);
+		out.set(new Uint8Array(ct), 12);
+		return out.buffer;
+	}
+
+	async open(sealed: ArrayBuffer): Promise<string> {
+		const bytes = new Uint8Array(sealed);
+		const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes.subarray(0, 12) }, await this.key, bytes.subarray(12));
+		return new TextDecoder().decode(pt);
+	}
 }
