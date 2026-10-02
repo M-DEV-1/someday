@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import type { Settings } from "./settings";
+import type { Html } from "./pages/html";
 import type { Store } from "./store";
 
 /** What a route handler gets: the request, env, the store stub, the session token if signed in, and the path match. */
@@ -30,9 +31,9 @@ const COOKIE = "someday";
 const COOKIE_MAX_AGE = 400 * 86400;
 
 /** A page response. Only style and script elements carrying this request's nonce run, so injected markup cannot run code. */
-export function html(c: { view: View }, body: string, status = 200): Response {
+export function html(c: { view: View }, body: Html, status = 200): Response {
 	const n = c.view.nonce;
-	return new Response(body, {
+	return new Response(body.value, {
 		status,
 		headers: {
 			"Content-Type": "text/html; charset=utf-8",
