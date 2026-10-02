@@ -27,6 +27,13 @@ export interface Letter extends LetterSummary {
 	body: string;
 }
 
+/** A letter that has been sent, so `sentAt` is set. */
+export type Delivered<T extends LetterSummary> = T & { sentAt: number };
+
+export function isDelivered<T extends LetterSummary>(letter: T): letter is Delivered<T> {
+	return letter.sentAt !== null;
+}
+
 type Row = {
 	id: string;
 	sealed: ArrayBuffer;
@@ -81,9 +88,11 @@ export class Letters {
 	}
 
 	/** Returns a letter only once it has been delivered; upcoming letters stay sealed. */
-	async delivered(id: string): Promise<Letter | null> {
+	async delivered(id: string): Promise<Delivered<Letter> | null> {
 		const row = this.sql.exec<Row>("SELECT * FROM letters WHERE id = ? AND sent_at IS NOT NULL", id).toArray()[0];
-		return row ? this.unseal(row) : null;
+		if (!row) return null;
+		const letter = await this.unseal(row);
+		return isDelivered(letter) ? letter : null;
 	}
 
 	remove(id: string): void {
