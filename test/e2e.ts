@@ -156,14 +156,28 @@ try {
 	assert.equal(emailed.letters.find((l) => l.subject === "In a year")?.body, "Hi");
 	assert.equal(emailed.letters.length, 2);
 
-	// A failed send is shown on the letter and retried later instead of being dropped.
+	// A letter the server refuses is marked failed, and the letter after it in the same pass still goes out.
+	smtp.refuseSubject = "Refuse me";
+	await post("/letters", { subject: "Refuse me", body: "x", deliver_at: inSeconds(1), tz: "UTC" });
+	await post("/letters", { subject: "After the refusal", body: "y", deliver_at: inSeconds(2), tz: "UTC" });
+	await sleep(2500);
+	await runCron(() => smtp.inbox.some((m) => m.subject === "After the refusal"));
+	assert.match(await text("/letters"), /Refuse me[\s\S]*Could not send, 1 try, retrying: SMTP server said: 554 5\.7\.1/);
+	smtp.refuseSubject = "";
+
+	// A failed login is shown on the letter and retried later instead of being dropped.
 	smtp.rejectAuth = true;
 	const failing = await post("/letters", { subject: "Will fail", body: "x", deliver_at: inSeconds(1), tz: "UTC" });
 	const failingId = grab(header(failing, "location"), /sent=(\w+)/);
 	await sleep(1500);
-	await runCron(async () => /Could not send, 1 try, retrying/.test(await text("/letters")));
+	await runCron(async () => /Will fail[\s\S]*Could not send, 1 try, retrying/.test(await text("/letters")));
 	assert.match(await text("/letters"), /535 5\.7\.8/);
-	assert.equal(smtp.inbox.length, 3, "the next backup is 30 days away");
+	smtp.rejectAuth = false;
+
+	// With mail working again, a pass sends no second backup, since the next one is 30 days away.
+	await runCron(() => true);
+	await sleep(1500);
+	assert.equal(smtp.inbox.filter((m) => m.subject.startsWith("Someday backup")).length, 1, "the next backup is 30 days away");
 
 	// Settings change every page except Settings itself, and custom CSS cannot close its style element.
 	assert.match(await text("/settings"), /Appearance[\s\S]*Writing/);
@@ -204,7 +218,7 @@ try {
 	const backup = readBackup(backupJson);
 	assert.equal(backup.settings.theme, "dark");
 	assert.equal(backup.settings.backup, false, "an unticked checkbox turns the backup email off");
-	assert.deepEqual(backup.letters.map((l) => l.subject).sort(), ["Héllo <future> ✉", "In a year", "Will fail"]);
+	assert.deepEqual(backup.letters.map((l) => l.subject).sort(), ["After the refusal", "Héllo <future> ✉", "In a year", "Refuse me", "Will fail"]);
 	assert.equal(backup.letters.find((l) => l.subject === "In a year")?.body, "Hi");
 
 	// Deleting, and signing out everywhere.
@@ -215,12 +229,12 @@ try {
 	assert.equal((await post("/settings", { theme: "light" })).status, 303);
 	const restored = await restore(backupJson);
 	assert.equal(restored.status, 303);
-	assert.match(await text(header(restored, "location")), /Restored the settings and 1 letter\. 2 were already here\./);
+	assert.match(await text(header(restored, "location")), /Restored the settings and 1 letter\. 4 were already here\./);
 	assert.match(await text("/letters"), /Will fail/);
 	assert.match(await text("/"), /data-theme="dark"/);
 	assert.equal((await get(`/letters/${failingId}`)).status, 303, "a restored sealed letter stays sealed");
 	assert.match(await text(`/letters/${soonId}`), /Dear me,\nstill here\?/);
-	assert.match(await text(header(await restore(backupJson), "location")), /Restored the settings and 0 letters\. 3 were already here\./);
+	assert.match(await text(header(await restore(backupJson), "location")), /Restored the settings and 0 letters\. 5 were already here\./);
 	assert.equal((await restore("{}")).status, 400);
 	const out = await post("/signout-all", {});
 	assert.match(header(out, "set-cookie"), /Max-Age=0/);

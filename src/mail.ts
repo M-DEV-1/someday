@@ -50,6 +50,14 @@ export async function openSmtp(cfg: SmtpConfig) {
 			await io.cmd("DATA", 354);
 			await io.cmd(`${message(cfg.from, mail)}\r\n.`, 250);
 		},
+		/** After a refused message, clears the session so the next message can be sent. Returns false when the connection is gone. */
+		async reset(): Promise<boolean> {
+			if (io.dead()) return false;
+			return io.cmd("RSET", 250).then(
+				() => true,
+				() => false,
+			);
+		},
 		async close(): Promise<void> {
 			if (!io.dead()) await io.cmd("QUIT", 221).catch(() => {});
 			await socket.close().catch(() => {});

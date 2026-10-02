@@ -1,4 +1,4 @@
-// A minimal plaintext SMTP server for the end-to-end test. It accepts any login unless `rejectAuth` is set, and decodes each message into `inbox`.
+// A minimal plaintext SMTP server for the end-to-end test. It accepts any login unless `rejectAuth` is set, refuses messages whose subject is `refuseSubject`, and decodes each accepted message into `inbox`.
 import net from "node:net";
 
 export interface Mail {
@@ -12,6 +12,7 @@ export interface Mail {
 export interface FakeSmtp {
 	inbox: Mail[];
 	rejectAuth: boolean;
+	refuseSubject: string;
 	close(): void;
 }
 
@@ -28,16 +29,20 @@ export function startFakeSmtp(port: number): FakeSmtp {
 				buf = buf.slice(i + 2);
 				if (data !== null) {
 					if (line === ".") {
-						smtp.inbox.push(decode(data));
+						const mail = decode(data);
 						data = null;
-						say("250 queued");
+						if (mail.subject === smtp.refuseSubject) say("554 5.7.1 Message refused");
+						else {
+							smtp.inbox.push(mail);
+							say("250 queued");
+						}
 					} else data += `${line}\r\n`;
 					continue;
 				}
 				const verb = line.slice(0, 4).toUpperCase();
 				if (verb === "EHLO") say("250-fake\r\n250 AUTH PLAIN");
 				else if (verb === "AUTH") say(smtp.rejectAuth ? "535 5.7.8 Username and Password not accepted" : "235 ok");
-				else if (verb === "MAIL" || verb === "RCPT") say("250 ok");
+				else if (verb === "MAIL" || verb === "RCPT" || verb === "RSET") say("250 ok");
 				else if (verb === "DATA") {
 					data = "";
 					say("354 go ahead");
@@ -48,7 +53,7 @@ export function startFakeSmtp(port: number): FakeSmtp {
 			}
 		});
 	});
-	const smtp: FakeSmtp = { inbox: [], rejectAuth: false, close: () => server.close() };
+	const smtp: FakeSmtp = { inbox: [], rejectAuth: false, refuseSubject: "", close: () => server.close() };
 	server.listen(port, "127.0.0.1");
 	return smtp;
 }
