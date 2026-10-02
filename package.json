@@ -9,6 +9,7 @@
     "build": "esbuild src/client/write.ts src/client/letters.ts --bundle --minify --format=esm --outdir=public/js",
     "typecheck": "tsc --noEmit && tsc --noEmit -p src/client && tsc --noEmit -p test",
     "lint": "biome check .",
+    "knip": "knip",
     "test": "node test/e2e.ts"
   },
   "devDependencies": {
@@ -16,6 +17,7 @@
     "@cloudflare/workers-types": "^5.20261002.1",
     "@types/node": "^22.0.0",
     "esbuild": "^0.28.1",
+    "knip": "^6.39.0",
     "typescript": "^7.0.2",
     "wrangler": "^4.146.0"
   },
