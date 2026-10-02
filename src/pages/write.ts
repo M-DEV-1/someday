@@ -52,6 +52,7 @@ export function writePage(to: string, draft: Draft, error = ""): string {
 		<div class="paper-foot">
 			<button type="button" class="link" id="inspire">Inspire me</button>
 			<span id="prompt" class="muted"></span>
+			<button type="button" class="link" id="focus">Full screen</button>
 		</div>
 	</div>
 	<aside>
@@ -92,6 +93,9 @@ f.addEventListener("submit", () => {
 });
 document.getElementById("inspire").addEventListener("click", () => {
 	document.getElementById("prompt").textContent = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+});
+document.getElementById("focus").addEventListener("click", (e) => {
+	e.target.textContent = document.body.classList.toggle("focus") ? "Exit full screen" : "Full screen";
 });
 if (f.date.value) show(); else fromChoice();
 </script>`,

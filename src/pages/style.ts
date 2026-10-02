@@ -37,4 +37,7 @@ aside > * + * { margin-top: 20px; }
 .chips label { margin: 0; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); cursor: pointer; }
 .chips input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .chips input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.focus header, body.focus h1, body.focus .lede, body.focus aside { display: none; }
+body.focus .write { grid-template-columns: minmax(0, 1fr); max-width: 760px; margin: 24px auto; }
+body.focus .paper textarea { min-height: 75vh; }
 `;
