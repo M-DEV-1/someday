@@ -41,7 +41,8 @@ function readDraft(form: FormData): { draft: Draft; input?: LetterInput; error?:
 	const months = Number(field(form, "in"));
 	const draft: Draft = {
 		subject: field(form, "subject").trim(),
-		body: field(form, "body"),
+		// Browsers send textarea line breaks as CRLF; letters are stored with LF.
+		body: field(form, "body").replace(/\r\n/g, "\n"),
 		date: field(form, "date"),
 		months: DELIVERY_CHOICES.some(([m]) => m === months) ? months : 0,
 	};

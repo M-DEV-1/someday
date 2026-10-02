@@ -134,7 +134,7 @@ try {
 	assert.equal(yearAway.status, 303);
 	assert.match(await text(header(yearAway, "location")), /Sealed\. Arrives .*, in 1 year\./);
 
-	const soon = await post("/letters", { subject: "Héllo <future> ✉", body: "Dear me,\nstill here?", deliver_at: inSeconds(1), tz: "Asia/Kolkata" });
+	const soon = await post("/letters", { subject: "Héllo <future> ✉", body: "Dear me,\r\nstill here?", deliver_at: inSeconds(1), tz: "Asia/Kolkata" });
 	const soonId = grab(header(soon, "location"), /sent=(\w+)/);
 	assert.equal((await get(`/letters/${soonId}`)).status, 303, "an upcoming letter cannot be opened");
 
