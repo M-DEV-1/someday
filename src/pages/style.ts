@@ -1,48 +1,55 @@
+/** The built-in stylesheet. Everything is sized in em from --size so the text-size setting scales the whole page; the owner's settings override the custom properties at the top. */
 export const CSS = `
-:root { color-scheme: light dark; --fg: #1f1d1a; --muted: #6b665e; --bg: #f4f0e8; --paper: #fffdf8; --line: #e2dccf; --accent: #8a4b2a; --on-accent: #fffdf8; --bad: #a32d2d; }
-@media (prefers-color-scheme: dark) { :root { --fg: #ece8e1; --muted: #a39d93; --bg: #1b1a18; --paper: #24221f; --line: #3a3732; --accent: #e0a17a; --on-accent: #1b1a18; --bad: #f09595; } }
+:root {
+	color-scheme: light dark;
+	--font-serif: Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Cambria, "Noto Serif", "Liberation Serif", Georgia, serif;
+	--font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+	--font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace;
+	--font: var(--font-serif);
+	--size: 18px;
+	--fg: light-dark(#000, #e6e6e6);
+	--bg: light-dark(#fff, #111);
+	--muted: light-dark(#555, #999);
+	--line: light-dark(#767676, #777);
+	--bad: light-dark(#b00000, #ff7b7b);
+	--accent: var(--fg);
+}
+:root[data-theme=light] { color-scheme: light; }
+:root[data-theme=dark] { color-scheme: dark; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, sans-serif; }
-a { color: inherit; }
-header { max-width: 1040px; margin: 0 auto; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.logo { font: 400 24px Georgia, serif; text-decoration: none; letter-spacing: 0.02em; }
-nav { display: flex; gap: 20px; align-items: center; font-size: 15px; }
-nav a { text-decoration: none; }
-nav form { display: inline; }
-main { max-width: 1040px; margin: 0 auto; padding: 8px 16px 64px; }
-.narrow { max-width: 560px; }
-h1 { font: 400 40px/1.15 Georgia, serif; margin: 16px 0 8px; }
-h2 { font: 400 28px/1.2 Georgia, serif; margin: 0 0 8px; }
-h3 { font-size: 15px; font-weight: 500; color: var(--muted); margin: 32px 0 4px; }
-.lede { color: var(--muted); margin: 0 0 24px; }
-.muted { color: var(--muted); font-size: 14px; }
-.error { color: var(--bad); }
-.notice { background: var(--paper); border-left: 3px solid var(--accent); padding: 12px 16px; margin: 0 0 24px; }
-.card, .paper { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
-label { display: block; font-size: 14px; color: var(--muted); margin: 0 0 6px; }
-input, textarea, button { font: inherit; color: inherit; }
-input[type=email], input[type=date], input[type=text] { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
-button { padding: 10px 18px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--on-accent); cursor: pointer; }
-button.big { width: 100%; padding: 14px; font-size: 18px; }
-button.link { background: none; border: none; color: var(--muted); padding: 0; font-size: 14px; text-decoration: underline; }
-.write { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
-@media (max-width: 760px) { .write { grid-template-columns: minmax(0, 1fr); } h1 { font-size: 32px; } }
-.paper input.subject { width: 100%; border: none; border-bottom: 1px solid var(--line); background: none; padding: 0 0 8px; font-size: 15px; color: var(--muted); }
-.paper textarea { width: 100%; min-height: 420px; border: none; background: none; resize: vertical; padding: 16px 0; font: 19px/1.7 Georgia, serif; outline: none; }
-.paper-foot { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; border-top: 1px solid var(--line); padding-top: 10px; }
-#prompt { font-style: italic; flex: 1; }
-aside > * + * { margin-top: 20px; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chips input { position: absolute; opacity: 0; }
-.chips label { margin: 0; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); cursor: pointer; }
-.chips input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.chips input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
-body.focus header, body.focus h1, body.focus .lede, body.focus aside { display: none; }
-body.focus .write { grid-template-columns: minmax(0, 1fr); max-width: 760px; margin: 24px auto; }
-body.focus .paper textarea { min-height: 75vh; }
-ul.letters { list-style: none; padding: 0; margin: 0; }
-ul.letters li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-ul.letters li form { display: inline; margin-left: 12px; }
-.reading { max-width: 720px; }
-.letter-body { white-space: pre-wrap; font: 19px/1.7 Georgia, serif; margin: 24px 0; }
+html { background: var(--bg); }
+body { margin: 0 auto; max-width: 70ch; padding: 1.5em 16px 4em; font: var(--size)/1.5 var(--font); color: var(--fg); background: var(--bg); }
+header { display: flex; flex-wrap: wrap; gap: 1.5em; font-size: .875em; margin-bottom: 3em; }
+header form { display: inline; margin: 0; }
+h1 { font-size: 1em; font-weight: 700; margin: 3em 0 .75em; }
+main > h1:first-child, main > form:first-child h1 { margin-top: 0; }
+p, ul, details, form { margin: 0 0 1.5em; }
+.small { font-size: .875em; color: var(--muted); }
+.bad { color: var(--bad); }
+a { color: var(--accent); text-underline-offset: .15em; }
+input, select, textarea, button { font: inherit; color: inherit; background: none; border-radius: 0; }
+input[type=text], input[type=email] { width: 100%; border: 0; border-bottom: 1px solid var(--line); padding: .25em 0; }
+select, input[type=date] { border: 1px solid var(--line); padding: .2em .4em; background: var(--bg); }
+button { border: 1px solid var(--fg); padding: .3em .9em; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button.link { border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: .15em; }
+textarea { width: 100%; border: 0; padding: 0; resize: vertical; min-height: 60vh; field-sizing: content; outline: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.subject { font-weight: 700; }
+.inline { display: flex; flex-wrap: wrap; gap: .5em; align-items: baseline; }
+.inline input[type=email] { flex: 1 1 14em; width: auto; }
+.letters { list-style: none; padding: 0; }
+.letters li { display: grid; grid-template-columns: 8em 1fr auto; gap: 1em; padding: .4em 0; border-top: 1px solid var(--line); }
+.letters li > .bad { grid-column: 2 / -1; }
+.letters time { font-variant-numeric: tabular-nums; color: var(--muted); }
+.letters form { margin: 0; }
+.body { white-space: pre-wrap; }
+.fields { display: grid; grid-template-columns: 10em 1fr; gap: .75em 1em; align-items: baseline; }
+.fields textarea { min-height: 8em; border: 1px solid var(--line); padding: .4em; }
+@media (max-width: 480px) {
+	.letters li { grid-template-columns: 1fr auto; }
+	.letters time { grid-column: 1 / -1; }
+	.letters li > .bad { grid-column: 1 / -1; }
+	.fields { grid-template-columns: 1fr; }
+}
 `;

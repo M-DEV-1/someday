@@ -6,14 +6,10 @@ export function esc(s: string): string {
 	return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** Wraps page content in the shared document, header and navigation. The navigation shows only when signed in. */
+/** Wraps page content in the shared document and the one-line header. The links show only when signed in. */
 export function layout(view: View, content: string): string {
-	const nav = view.signedIn
-		? [
-				`<a href="/">Write</a>`,
-				`<a href="/letters">My letters</a>`,
-				`<form method="post" action="/signout"><button class="link">Sign out</button></form>`,
-			].join("")
+	const links = view.signedIn
+		? `<a href="/">Write</a><a href="/letters">Letters</a><form method="post" action="/signout"><button class="link">Sign out</button></form>`
 		: "";
 	return `<!doctype html>
 <html lang="en">
@@ -24,7 +20,7 @@ export function layout(view: View, content: string): string {
 <style nonce="${view.nonce}">${CSS}</style>
 </head>
 <body>
-<header><a class="logo" href="/">someday</a>${view.signedIn ? `<nav>${nav}</nav>` : ""}</header>
+<header><strong>Someday</strong>${links}</header>
 <main>${content}</main>
 </body>
 </html>`;
