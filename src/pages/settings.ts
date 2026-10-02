@@ -76,7 +76,7 @@ export function settingsPage(view: View, settings: Settings, to: string, { notic
 <form method="post" action="/settings/test"><button>Send a test email</button> <span class="small">to ${to}</span></form>
 <p><a href="/backup">Download a backup</a> <span class="small">of your settings and every letter, as JSON. Sealed letters are in it as plain text, so keep the file somewhere private.</span></p>
 <form class="inline" method="post" action="/restore" enctype="multipart/form-data"><input type="file" name="file" accept=".json,application/json" aria-label="Backup file" required><button>Restore</button></form>
-<p class="small">Restore adds the letters from a backup and replaces these settings with the backup's. Letters already here stay as they are.</p>
+<p class="small">Restore adds the letters from a backup and replaces these settings with the backup's. Letters already here stay as they are. A letter deleted since the backup was made comes back as it was in the file; if it was sealed then and its date has passed, it is sent.</p>
 <form method="post" action="/signout-all"><button>Sign out everywhere</button> <span class="small">including this browser</span></form>`,
 		{ customCss: false },
 	);
